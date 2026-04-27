@@ -248,6 +248,41 @@ app.post('/api/chat', async (req, res) => {
       return;
     }
 
+    // Buscar PDFs relevantes en los links encontrados en las páginas HTML
+    const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const queryNorm = norm(message);
+    const alreadyFetched = new Set(validDocs.map(d => d.url));
+    const pdfCandidates = [];
+
+    for (const doc of validDocs) {
+      if (!doc.links) continue;
+      for (const link of doc.links) {
+        if (!link.url.toLowerCase().includes('.pdf')) continue;
+        if (alreadyFetched.has(link.url)) continue;
+
+        const linkNorm = norm(link.text);
+        let score = 0;
+        const nums = message.match(/\b\d{1,4}\b/g);
+        if (nums) nums.forEach(n => { if (linkNorm.includes(n)) score += 3; });
+        queryNorm.split(/\s+/).forEach(w => {
+          if (w.length > 3 && linkNorm.includes(w)) score += 1;
+        });
+
+        if (score > 0) {
+          pdfCandidates.push({ name: link.text, url: link.url, score });
+          alreadyFetched.add(link.url);
+        }
+      }
+    }
+
+    // Descargar los 2 PDFs más relevantes encontrados dinámicamente
+    if (pdfCandidates.length > 0) {
+      pdfCandidates.sort((a, b) => b.score - a.score);
+      const topPDFs = pdfCandidates.slice(0, 2);
+      const pdfDocs = await Promise.all(topPDFs.map(fetchBCUPage));
+      pdfDocs.filter(Boolean).forEach(d => validDocs.push(d));
+    }
+
     const docsContext = validDocs.map(doc => {
       const content = doc.isPDF
         ? extractRelevantSections(doc.content, message)
