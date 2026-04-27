@@ -259,6 +259,22 @@ FORMATO:
 - Para referencias normativas: **[Tipo] Nº [número] — [Descripción breve]**
 - Incluí al final las fuentes consultadas con su URL.`;
 
+const SYSTEM_PROMPT_FALLBACK = `Eres un asistente especializado en la normativa del Banco Central del Uruguay (BCU).
+
+En este momento no es posible acceder a los documentos oficiales del BCU en tiempo real. Aun así, DEBÉS responder la consulta utilizando tu conocimiento sobre regulación financiera uruguaya.
+
+INSTRUCCIONES:
+- Respondé siempre en español, de forma clara, precisa y profesional.
+- Usá tu conocimiento sobre la normativa del BCU, leyes uruguayas y regulación financiera para responder.
+- Al inicio de tu respuesta aclará brevemente que no pudiste acceder a los documentos en tiempo real y que la información proviene de tu conocimiento general.
+- Si conocés números de circulares, resoluciones o artículos relevantes, mencionálos.
+- Al final, recomendá verificar la información actualizada en bcu.gub.uy.
+- Si genuinamente no tenés información sobre el tema, decilo claramente y dirigí al usuario a bcu.gub.uy.
+
+FORMATO:
+- Usá listas cuando sea apropiado.
+- Para referencias normativas: **[Tipo] Nº [número] — [Descripción breve]**`;
+
 app.post('/api/chat', async (req, res) => {
   const { message, history = [] } = req.body;
   if (!message?.trim()) return res.status(400).json({ error: 'Mensaje requerido' });
@@ -275,7 +291,27 @@ app.post('/api/chat', async (req, res) => {
     const validDocs = fetchedDocs.filter(Boolean);
 
     if (validDocs.length === 0) {
-      res.write(`data: ${JSON.stringify({ type: 'text', content: 'No pude acceder a los documentos oficiales del BCU en este momento. Por favor intentá de nuevo en unos instantes o consultá directamente en [bcu.gub.uy](https://www.bcu.gub.uy).' })}\n\n`);
+      const fallbackMessages = [
+        { role: 'system', content: SYSTEM_PROMPT_FALLBACK },
+        ...history
+          .filter(m => m.role && m.content)
+          .map(m => ({ role: m.role, content: m.content })),
+        { role: 'user', content: message },
+      ];
+
+      const fallbackStream = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: fallbackMessages,
+        stream: true,
+      });
+
+      for await (const chunk of fallbackStream) {
+        const text = chunk.choices[0]?.delta?.content || '';
+        if (text) {
+          res.write(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`);
+        }
+      }
+
       res.write(`data: ${JSON.stringify({ type: 'sources', sources: [] })}\n\n`);
       res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
       return;
