@@ -147,27 +147,34 @@ async function fetchBCUPage(source) {
 function extractRelevantSections(text, query, maxLength = 20000) {
   const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const textNorm = norm(text);
-  const queryNorm = norm(query);
 
-  const terms = new Set();
+  // Orden importa: de más específico a menos específico
+  const terms = [];
 
-  // Números de artículo mencionados en la consulta
   const nums = query.match(/\b\d{1,4}\b/g);
-  if (nums) nums.forEach(n => {
-    terms.add(n);
-    terms.add(`articulo ${n}`);
-    terms.add(`art. ${n}`);
-    terms.add(`art ${n}`);
-  });
+  if (nums) {
+    nums.forEach(n => {
+      // Patrones más específicos primero — evitan falsos positivos con números de página
+      terms.push(`articulo ${n} `);
+      terms.push(`articulo ${n}.`);
+      terms.push(`articulo ${n}-`);
+      terms.push(`art. ${n} `);
+      terms.push(`art. ${n}.`);
+      terms.push(`art ${n} `);
+    });
+  }
 
-  // Palabras clave significativas de la consulta
-  const stopWords = new Set(['que', 'del', 'los', 'las', 'una', 'unos', 'unas', 'por', 'con', 'para', 'como', 'dice', 'cual', 'este', 'esta', 'hace', 'sobre']);
+  // Palabras clave de la consulta (excluye términos conversacionales)
+  const stopWords = new Set(['hola', 'que', 'del', 'los', 'las', 'una', 'unos', 'unas', 'por', 'con', 'para', 'como', 'dice', 'cual', 'este', 'esta', 'hace', 'sobre', 'podes', 'hablar', 'dime', 'cual', 'cuales', 'segun', 'favor']);
   query.split(/\s+/).forEach(w => {
-    const wn = norm(w.replace(/[^a-z0-9áéíóúüñ]/gi, ''));
-    if (wn.length > 3 && !stopWords.has(wn)) terms.add(wn);
+    const wn = norm(w.replace(/[^a-z0-9]/gi, ''));
+    if (wn.length > 4 && !stopWords.has(wn) && !terms.includes(wn)) terms.push(wn);
   });
 
-  const windowSize = 4000;
+  // Número solo — último recurso, muy propenso a falsos positivos
+  if (nums) nums.forEach(n => { if (!terms.includes(n)) terms.push(n); });
+
+  const windowSize = 5000;
   const sections = [];
   const used = [];
 
@@ -177,7 +184,7 @@ function extractRelevantSections(text, query, maxLength = 20000) {
     while (pos < textNorm.length) {
       const idx = textNorm.indexOf(t, pos);
       if (idx === -1) break;
-      const start = Math.max(0, idx - 300);
+      const start = Math.max(0, idx - 200);
       const end = Math.min(text.length, idx + windowSize);
       const overlaps = used.some(([s, e]) => !(end <= s || start >= e));
       if (!overlaps) {
@@ -185,8 +192,10 @@ function extractRelevantSections(text, query, maxLength = 20000) {
         sections.push(text.substring(start, end));
         if (sections.join('').length >= maxLength) break;
       }
-      pos = idx + t.length + 500;
+      pos = idx + t.length + 200;
     }
+    // Si ya encontramos matches con patrones específicos, no seguir buscando
+    if (sections.length > 0 && term.includes(' ')) break;
     if (sections.join('').length >= maxLength) break;
   }
 
