@@ -1,9 +1,12 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
+const https = require('https');
 const cheerio = require('cheerio');
 const Groq = require('groq-sdk');
 const path = require('path');
+
+const bcuAgent = new https.Agent({ rejectUnauthorized: false });
 
 const app = express();
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -80,6 +83,7 @@ async function fetchBCUPage(source) {
       headers: HTTP_HEADERS,
       timeout: 12000,
       maxRedirects: 5,
+      httpsAgent: bcuAgent,
     });
 
     const $ = cheerio.load(res.data);
