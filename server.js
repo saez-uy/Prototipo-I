@@ -130,21 +130,22 @@ function selectSources(query) {
   return selected.slice(0, 4);
 }
 
-const SYSTEM_PROMPT = `Eres un asistente experto en la normativa del Banco Central del Uruguay (BCU). Tu función principal es ayudar a interpretar y consultar la normativa vigente del BCU: circulares, resoluciones, leyes, reglamentos y demás normativas.
+const SYSTEM_PROMPT = `Eres un asistente especializado en la normativa del Banco Central del Uruguay (BCU).
+
+REGLA FUNDAMENTAL: Solo podés responder basándote EXCLUSIVAMENTE en los documentos oficiales del BCU que se te proporcionan en cada consulta. Está terminantemente prohibido usar conocimiento propio, entrenamiento previo o cualquier fuente que no sea los documentos adjuntos.
 
 INSTRUCCIONES:
 - Responde siempre en español, de forma clara, precisa y profesional.
-- Cuando dispongas de documentos del BCU como contexto, basa tus respuestas en ese contenido.
-- Cita siempre las fuentes: nombre del documento y URL si está disponible.
-- Si mencionas una circular, incluye su número cuando lo conozcas.
-- Si la información no está en los documentos proporcionados, indícalo claramente y responde con tu conocimiento general sobre la normativa del BCU, aclarando que puede no reflejar la versión más reciente.
-- Nunca inventes números de circulares, fechas o contenido normativo.
-- Si el usuario pregunta algo que está fuera del ámbito del BCU, redirige amablemente hacia el tema normativo.
+- Si la información solicitada está en los documentos proporcionados, respondé citando el documento y la URL.
+- Si mencionás una circular o resolución, incluí su número exacto tal como aparece en los documentos.
+- Si la información solicitada NO está en los documentos proporcionados, respondé exactamente: "No encontré información sobre ese tema en los documentos oficiales del BCU disponibles. Te recomiendo consultar directamente en bcu.gub.uy."
+- Nunca inferás, extrapoles ni complementes con conocimiento externo a los documentos.
+- Si el usuario pregunta algo fuera del ámbito del BCU, indicá que solo podés responder sobre normativa del BCU.
 
 FORMATO:
-- Usa listas cuando sea apropiado para facilitar la lectura.
-- Para referencias normativas, usa el formato: **[Tipo] Nº [número] — [Descripción breve]**
-- Incluye al final de tu respuesta las fuentes consultadas.`;
+- Usá listas cuando sea apropiado para facilitar la lectura.
+- Para referencias normativas usá: **[Tipo] Nº [número] — [Descripción breve]**
+- Incluí al final las fuentes consultadas con su URL.`;
 
 app.post('/api/chat', async (req, res) => {
   const { message, history = [] } = req.body;
@@ -161,16 +162,20 @@ app.post('/api/chat', async (req, res) => {
     const fetchedDocs = await Promise.all(sources.map(fetchBCUPage));
     const validDocs = fetchedDocs.filter(Boolean);
 
-    let docsContext = '';
-    if (validDocs.length > 0) {
-      docsContext = validDocs.map(doc => {
-        let section = `### ${doc.name}\n**URL:** ${doc.url}\n\n${doc.content}`;
-        if (doc.links.length > 0) {
-          section += `\n\n**Documentos y enlaces encontrados:**\n${doc.links.map(l => `- ${l.text}: ${l.url}`).join('\n')}`;
-        }
-        return section;
-      }).join('\n\n---\n\n');
+    if (validDocs.length === 0) {
+      res.write(`data: ${JSON.stringify({ type: 'text', content: 'No pude acceder a los documentos oficiales del BCU en este momento. Por favor intentá de nuevo en unos instantes o consultá directamente en [bcu.gub.uy](https://www.bcu.gub.uy).' })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'sources', sources: [] })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      return;
     }
+
+    const docsContext = validDocs.map(doc => {
+      let section = `### ${doc.name}\n**URL:** ${doc.url}\n\n${doc.content}`;
+      if (doc.links.length > 0) {
+        section += `\n\n**Documentos y enlaces encontrados:**\n${doc.links.map(l => `- ${l.text}: ${l.url}`).join('\n')}`;
+      }
+      return section;
+    }).join('\n\n---\n\n');
 
     const groqMessages = [
       { role: 'system', content: SYSTEM_PROMPT },
@@ -179,9 +184,7 @@ app.post('/api/chat', async (req, res) => {
         .map(m => ({ role: m.role, content: m.content })),
       {
         role: 'user',
-        content: docsContext
-          ? `Documentos oficiales del BCU recuperados para esta consulta:\n\n${docsContext}\n\nConsulta del usuario: ${message}`
-          : `Consulta del usuario: ${message}`,
+        content: `Documentos oficiales del BCU para responder esta consulta (usá ÚNICAMENTE esta información):\n\n${docsContext}\n\nConsulta: ${message}`,
       },
     ];
 
@@ -198,12 +201,7 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
-    const sourcesPayload = validDocs.map(d => ({ name: d.name, url: d.url }));
-    if (validDocs.length === 0) {
-      sourcesPayload.push({ name: 'bcu.gub.uy (no se pudo acceder en tiempo real)', url: 'https://www.bcu.gub.uy' });
-    }
-
-    res.write(`data: ${JSON.stringify({ type: 'sources', sources: sourcesPayload })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: 'sources', sources: validDocs.map(d => ({ name: d.name, url: d.url })) })}\n\n`);
     res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
   } catch (err) {
     console.error('[Chat error]', err.message);
