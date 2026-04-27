@@ -3,310 +3,674 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Calculadora Gorila</title>
+  <title>BCU Normativa — Asistente IA</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bcu-blue: #003876;
+      --bcu-light: #0057a8;
+      --bcu-gold: #c8a94a;
+      --bg: #0a0f1e;
+      --surface: #111827;
+      --surface2: #1a2235;
+      --surface3: #222d42;
+      --border: rgba(255,255,255,0.08);
+      --text: #e8edf5;
+      --text-muted: #7a8ba8;
+      --user-bubble: #0057a8;
+      --ai-bubble: #1a2235;
+      --radius: 16px;
     }
 
-    body {
-      min-height: 100vh;
+    html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+    body { display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #002557 0%, #003876 50%, #0a4d94 100%);
+      border-bottom: 1px solid var(--bcu-gold);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+    }
+
+    .header-logo {
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Gorille_des_plaines_de_l%27ouest_%28Gorilla_gorilla_gorilla%29_au_Zoo_de_la_Palmyre_%282%29.jpg/1280px-Gorille_des_plaines_de_l%27ouest_%28Gorilla_gorilla_gorilla%29_au_Zoo_de_la_Palmyre_%282%29.jpg');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 22px;
+      flex-shrink: 0;
     }
 
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.45);
-      z-index: 0;
+    .header-text h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.3px;
     }
 
-    .calculator {
-      position: relative;
-      z-index: 1;
-      background: rgba(15, 15, 15, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 24px;
-      padding: 28px 24px 24px;
-      width: 320px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.05);
+    .header-text p {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      margin-top: 1px;
     }
 
-    .calc-title {
-      text-align: center;
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 13px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-bottom: 18px;
+    .header-badge {
+      margin-left: auto;
+      background: rgba(200, 169, 74, 0.15);
+      border: 1px solid rgba(200, 169, 74, 0.35);
+      color: var(--bcu-gold);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
     }
 
-    .display {
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 14px;
-      padding: 16px 20px 12px;
-      margin-bottom: 20px;
-      text-align: right;
-      min-height: 90px;
+    /* ── Layout ── */
+    .app { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 280px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+      overflow: hidden;
     }
 
-    .display-expression {
-      color: rgba(255, 255, 255, 0.4);
-      font-size: 14px;
-      min-height: 20px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .sidebar-section {
+      padding: 18px 16px 12px;
+    }
+
+    .sidebar-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .suggested-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .suggested-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      line-height: 1.4;
+      transition: all 0.15s;
+    }
+
+    .suggested-btn:hover {
+      background: var(--surface3);
+      border-color: rgba(0, 87, 168, 0.4);
+      color: #c5d9f0;
+    }
+
+    .suggested-btn::before {
+      content: '→ ';
+      color: var(--bcu-gold);
+      font-weight: 700;
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0 16px;
+    }
+
+    .sidebar-info {
+      padding: 16px;
+      margin-top: auto;
+    }
+
+    .info-card {
+      background: rgba(0, 56, 118, 0.25);
+      border: 1px solid rgba(0, 87, 168, 0.3);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .info-card strong { color: #8ab5e0; display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* ── Chat area ── */
+    .chat-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 0;
+      scroll-behavior: smooth;
+    }
+
+    .messages::-webkit-scrollbar { width: 6px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    .message-row {
+      display: flex;
+      gap: 12px;
+      padding: 6px 24px;
+      max-width: 860px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .message-row.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .avatar.ai { background: linear-gradient(135deg, #003876, #0057a8); }
+    .avatar.user { background: linear-gradient(135deg, #1a4a7a, #0057a8); }
+
+    .bubble {
+      max-width: 75%;
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      font-size: 14.5px;
+      line-height: 1.65;
+    }
+
+    .bubble.user {
+      background: var(--user-bubble);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .bubble.ai {
+      background: var(--ai-bubble);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .bubble strong { color: #8ab5e0; font-weight: 600; }
+    .bubble em { color: #a8c4e0; }
+
+    .bubble ul, .bubble ol {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+
+    .bubble li { margin: 4px 0; }
+
+    .bubble p + p { margin-top: 8px; }
+
+    .bubble pre {
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 10px;
+      overflow-x: auto;
+      font-size: 13px;
+      margin: 8px 0;
+    }
+
+    .bubble code {
+      background: rgba(0,0,0,0.3);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: monospace;
+    }
+
+    /* Thinking indicator */
+    .thinking-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 4px 0;
+    }
+
+    .thinking-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .thinking-dots span {
+      width: 6px;
+      height: 6px;
+      background: var(--bcu-gold);
+      border-radius: 50%;
+      animation: bounce 1.2s infinite;
+    }
+
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* Source cards */
+    .sources-row {
+      padding: 4px 24px 8px;
+      max-width: 860px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .sources-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
       margin-bottom: 6px;
     }
 
-    .display-value {
-      color: #ffffff;
-      font-size: 40px;
-      font-weight: 300;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      line-height: 1;
+    .sources-cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
     }
 
-    .buttons {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
+    .source-card {
+      background: rgba(0, 56, 118, 0.2);
+      border: 1px solid rgba(0, 87, 168, 0.3);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11.5px;
+      color: #7aabdb;
+      text-decoration: none;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .source-card:hover {
+      background: rgba(0, 87, 168, 0.3);
+      color: #a8d0f0;
+      border-color: rgba(0, 87, 168, 0.5);
+    }
+
+    .source-card::before { content: '🔗'; font-size: 10px; }
+
+    /* Welcome screen */
+    .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .welcome-icon {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #002557, #0057a8);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 30px rgba(0, 87, 168, 0.4);
+    }
+
+    .welcome h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .welcome p {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 480px;
+      line-height: 1.6;
+    }
+
+    /* Input area */
+    .input-area {
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 16px 24px;
+      flex-shrink: 0;
+    }
+
+    .input-wrapper {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
       gap: 10px;
+      align-items: flex-end;
     }
 
-    button {
-      border: none;
+    .input-box {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 18px 0;
-      font-size: 18px;
-      font-weight: 400;
-      cursor: pointer;
-      transition: all 0.1s ease;
+      padding: 12px 16px;
+      font-size: 14.5px;
+      color: var(--text);
+      resize: none;
+      font-family: inherit;
+      line-height: 1.5;
+      min-height: 48px;
+      max-height: 160px;
+      overflow-y: auto;
+      transition: border-color 0.15s;
       outline: none;
-      user-select: none;
     }
 
-    button:active {
-      transform: scale(0.93);
+    .input-box::placeholder { color: var(--text-muted); }
+
+    .input-box:focus {
+      border-color: rgba(0, 87, 168, 0.6);
     }
 
-    .btn-number {
-      background: rgba(80, 80, 80, 0.7);
-      color: #ffffff;
+    .send-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, #003876, #0057a8);
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
     }
 
-    .btn-number:hover {
-      background: rgba(100, 100, 100, 0.8);
+    .send-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, #004a9e, #006ad4);
+      transform: scale(1.04);
     }
 
-    .btn-operator {
-      background: rgba(255, 159, 10, 0.85);
-      color: #ffffff;
-      font-size: 22px;
+    .send-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
 
-    .btn-operator:hover {
-      background: rgba(255, 179, 50, 0.95);
+    .input-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 8px;
+      max-width: 860px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
-    .btn-function {
-      background: rgba(58, 58, 58, 0.85);
-      color: #ffffff;
+    /* Error bubble */
+    .bubble.error {
+      background: rgba(180, 40, 40, 0.2);
+      border: 1px solid rgba(200, 60, 60, 0.3);
+      color: #f0a0a0;
     }
 
-    .btn-function:hover {
-      background: rgba(80, 80, 80, 0.9);
-    }
-
-    .btn-equals {
-      background: rgba(255, 159, 10, 0.9);
-      color: #ffffff;
-      font-size: 22px;
-    }
-
-    .btn-equals:hover {
-      background: rgba(255, 179, 50, 1);
-    }
-
-    .btn-zero {
-      grid-column: span 2;
-      text-align: left;
-      padding-left: 24px;
-    }
-
-    .btn-danger {
-      background: rgba(200, 60, 60, 0.75);
-      color: #ffffff;
-    }
-
-    .btn-danger:hover {
-      background: rgba(220, 80, 80, 0.9);
+    /* Responsive */
+    @media (max-width: 680px) {
+      .sidebar { display: none; }
+      .header-badge { display: none; }
     }
   </style>
 </head>
 <body>
-  <div class="calculator">
-    <div class="calc-title">🦍 Calculadora</div>
-    <div class="display">
-      <div class="display-expression" id="expression"></div>
-      <div class="display-value" id="displayValue">0</div>
+
+<header class="header">
+  <div class="header-logo">🏦</div>
+  <div class="header-text">
+    <h1>Asistente Normativa BCU</h1>
+    <p>Banco Central del Uruguay — Consulta de regulación vigente</p>
+  </div>
+  <div class="header-badge">IA + Documentos Oficiales</div>
+</header>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Consultas frecuentes</div>
+      <div class="suggested-list">
+        <button class="suggested-btn" onclick="sendSuggested(this)">¿Cuáles son los requisitos de capital mínimo para bancos?</button>
+        <button class="suggested-btn" onclick="sendSuggested(this)">¿Qué normativa regula la prevención de lavado de activos?</button>
+        <button class="suggested-btn" onclick="sendSuggested(this)">¿Cómo se regulan las casas de cambio en Uruguay?</button>
+        <button class="suggested-btn" onclick="sendSuggested(this)">¿Qué es el encaje bancario y cómo lo define el BCU?</button>
+        <button class="suggested-btn" onclick="sendSuggested(this)">¿Qué circulares regulan el mercado de valores?</button>
+        <button class="suggested-btn" onclick="sendSuggested(this)">¿Cuáles son las normas sobre debida diligencia KYC?</button>
+        <button class="suggested-btn" onclick="sendSuggested(this)">¿Qué regula el BCU sobre el sistema de pagos?</button>
+      </div>
     </div>
-    <div class="buttons">
-      <button class="btn-danger" onclick="clearAll()">AC</button>
-      <button class="btn-function" onclick="toggleSign()">+/-</button>
-      <button class="btn-function" onclick="percentage()">%</button>
-      <button class="btn-operator" onclick="setOperator('/')">÷</button>
 
-      <button class="btn-number" onclick="appendNumber('7')">7</button>
-      <button class="btn-number" onclick="appendNumber('8')">8</button>
-      <button class="btn-number" onclick="appendNumber('9')">9</button>
-      <button class="btn-operator" onclick="setOperator('*')">×</button>
+    <div class="sidebar-divider"></div>
 
-      <button class="btn-number" onclick="appendNumber('4')">4</button>
-      <button class="btn-number" onclick="appendNumber('5')">5</button>
-      <button class="btn-number" onclick="appendNumber('6')">6</button>
-      <button class="btn-operator" onclick="setOperator('-')">−</button>
+    <div class="sidebar-info">
+      <div class="info-card">
+        <strong>Fuentes consultadas</strong>
+        Este asistente accede en tiempo real a la normativa publicada en <strong>bcu.gub.uy</strong>: circulares, resoluciones, leyes y reglamentos vigentes.
+      </div>
+    </div>
+  </aside>
 
-      <button class="btn-number" onclick="appendNumber('1')">1</button>
-      <button class="btn-number" onclick="appendNumber('2')">2</button>
-      <button class="btn-number" onclick="appendNumber('3')">3</button>
-      <button class="btn-operator" onclick="setOperator('+')">+</button>
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <div class="welcome-icon">🏛️</div>
+        <h2>Consultá la normativa del BCU</h2>
+        <p>Hacé preguntas sobre circulares, resoluciones, regulación financiera, lavado de activos, mercado de valores, seguros y cualquier normativa del Banco Central del Uruguay.</p>
+      </div>
+    </div>
 
-      <button class="btn-number btn-zero" onclick="appendNumber('0')">0</button>
-      <button class="btn-number" onclick="appendDecimal()">.</button>
-      <button class="btn-equals" onclick="calculate()">=</button>
+    <div class="input-area">
+      <div class="input-wrapper">
+        <textarea
+          class="input-box"
+          id="userInput"
+          placeholder="Ej: ¿Qué dice la normativa sobre encaje bancario?"
+          rows="1"
+        ></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Enviar">
+          ➤
+        </button>
+      </div>
+      <div class="input-hint">Enter para enviar · Shift+Enter para nueva línea</div>
     </div>
   </div>
+</div>
 
-  <script>
-    let currentValue = '0';
-    let previousValue = '';
-    let operator = null;
-    let shouldResetDisplay = false;
-    let expression = '';
+<script>
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('userInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const welcomeEl = document.getElementById('welcome');
 
-    const display = document.getElementById('displayValue');
-    const expressionEl = document.getElementById('expression');
+  const history = [];
+  let isStreaming = false;
 
-    function updateDisplay(val) {
-      const num = parseFloat(val);
-      const str = isFinite(num) ? String(num) : val;
-      display.textContent = str.length > 12 ? parseFloat(num.toPrecision(9)).toString() : str;
+  // Auto-resize textarea
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
+  });
+
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
+  });
 
-    function appendNumber(num) {
-      if (shouldResetDisplay) {
-        currentValue = num;
-        shouldResetDisplay = false;
-      } else {
-        currentValue = currentValue === '0' ? num : currentValue + num;
+  function sendSuggested(btn) {
+    inputEl.value = btn.textContent.replace(/^→ /, '');
+    sendMessage();
+  }
+
+  function scrollBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function addRow(role, content, extra = '') {
+    const row = document.createElement('div');
+    row.className = `message-row ${role}`;
+    const avatar = role === 'user' ? '👤' : '🏦';
+    row.innerHTML = `
+      <div class="avatar ${role}">${avatar}</div>
+      <div class="bubble ${role}">${content}</div>
+    `;
+    messagesEl.appendChild(row);
+    scrollBottom();
+    return row.querySelector('.bubble');
+  }
+
+  function addSourceCards(sources) {
+    if (!sources || sources.length === 0) return;
+    const row = document.createElement('div');
+    row.className = 'sources-row';
+    row.innerHTML = `
+      <div class="sources-label">Fuentes consultadas</div>
+      <div class="sources-cards">
+        ${sources.map(s => `<a class="source-card" href="${s.url}" target="_blank" rel="noopener">${escHtml(s.name)}</a>`).join('')}
+      </div>
+    `;
+    messagesEl.appendChild(row);
+    scrollBottom();
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function formatMarkdown(text) {
+    // Basic markdown: bold, italic, headers, lists, code
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/^### (.+)$/gm, '<strong>$1</strong>')
+      .replace(/^## (.+)$/gm, '<strong>$1</strong>')
+      .replace(/^# (.+)$/gm, '<strong>$1</strong>')
+      .replace(/^- (.+)$/gm, '• $1')
+      .replace(/\n/g, '<br>');
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || isStreaming) return;
+
+    isStreaming = true;
+    sendBtn.disabled = true;
+    welcomeEl?.remove();
+
+    // User bubble
+    addRow('user', escHtml(text));
+    history.push({ role: 'user', content: text });
+
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+
+    // AI bubble with thinking indicator
+    const aiBubble = addRow('ai', `
+      <div class="thinking-indicator">
+        <div class="thinking-dots"><span></span><span></span><span></span></div>
+        Consultando normativa BCU…
+      </div>
+    `);
+
+    let fullText = '';
+    let sources = [];
+    let started = false;
+
+    try {
+      const resp = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
+      });
+
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          let evt;
+          try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+
+          if (evt.type === 'text') {
+            if (!started) {
+              aiBubble.innerHTML = '';
+              started = true;
+            }
+            fullText += evt.content;
+            aiBubble.innerHTML = formatMarkdown(fullText);
+            scrollBottom();
+          } else if (evt.type === 'sources') {
+            sources = evt.sources;
+          } else if (evt.type === 'done') {
+            break;
+          } else if (evt.type === 'error') {
+            aiBubble.classList.add('error');
+            aiBubble.innerHTML = `⚠️ ${escHtml(evt.message)}`;
+          }
+        }
       }
-      updateDisplay(currentValue);
+    } catch (err) {
+      aiBubble.classList.add('error');
+      aiBubble.innerHTML = `⚠️ Error de conexión: ${escHtml(err.message)}`;
     }
 
-    function appendDecimal() {
-      if (shouldResetDisplay) {
-        currentValue = '0.';
-        shouldResetDisplay = false;
-      } else if (!currentValue.includes('.')) {
-        currentValue += '.';
-      }
-      updateDisplay(currentValue);
+    if (fullText) {
+      history.push({ role: 'assistant', content: fullText });
+      addSourceCards(sources);
     }
 
-    function setOperator(op) {
-      if (operator && !shouldResetDisplay) {
-        calculate(true);
-      }
-      previousValue = currentValue;
-      operator = op;
-      shouldResetDisplay = true;
-      const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
-      expression = previousValue + ' ' + opSymbols[op];
-      expressionEl.textContent = expression;
-    }
-
-    function calculate(chained = false) {
-      if (!operator || !previousValue) return;
-      const a = parseFloat(previousValue);
-      const b = parseFloat(currentValue);
-      const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
-      let result;
-
-      switch (operator) {
-        case '+': result = a + b; break;
-        case '-': result = a - b; break;
-        case '*': result = a * b; break;
-        case '/':
-          if (b === 0) { display.textContent = 'Error'; expression = ''; expressionEl.textContent = ''; operator = null; return; }
-          result = a / b;
-          break;
-      }
-
-      if (!chained) {
-        expressionEl.textContent = previousValue + ' ' + opSymbols[operator] + ' ' + currentValue + ' =';
-        operator = null;
-      }
-
-      currentValue = String(result);
-      previousValue = currentValue;
-      shouldResetDisplay = true;
-      updateDisplay(currentValue);
-    }
-
-    function clearAll() {
-      currentValue = '0';
-      previousValue = '';
-      operator = null;
-      shouldResetDisplay = false;
-      expression = '';
-      expressionEl.textContent = '';
-      updateDisplay('0');
-    }
-
-    function toggleSign() {
-      currentValue = String(parseFloat(currentValue) * -1);
-      updateDisplay(currentValue);
-    }
-
-    function percentage() {
-      currentValue = String(parseFloat(currentValue) / 100);
-      updateDisplay(currentValue);
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key >= '0' && e.key <= '9') appendNumber(e.key);
-      else if (e.key === '.') appendDecimal();
-      else if (e.key === '+') setOperator('+');
-      else if (e.key === '-') setOperator('-');
-      else if (e.key === '*') setOperator('*');
-      else if (e.key === '/') { e.preventDefault(); setOperator('/'); }
-      else if (e.key === 'Enter' || e.key === '=') calculate();
-      else if (e.key === 'Escape') clearAll();
-      else if (e.key === 'Backspace') {
-        if (currentValue.length > 1) currentValue = currentValue.slice(0, -1);
-        else currentValue = '0';
-        updateDisplay(currentValue);
-      }
-    });
-  </script>
+    isStreaming = false;
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+</script>
 </body>
 </html>
