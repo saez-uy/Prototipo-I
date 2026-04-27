@@ -2,11 +2,11 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 const path = require('path');
 
 const app = express();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
@@ -172,27 +172,27 @@ app.post('/api/chat', async (req, res) => {
       }).join('\n\n---\n\n');
     }
 
-    const geminiHistory = history
-      .filter(m => m.role && m.content)
-      .map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
-      }));
+    const groqMessages = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...history
+        .filter(m => m.role && m.content)
+        .map(m => ({ role: m.role, content: m.content })),
+      {
+        role: 'user',
+        content: docsContext
+          ? `Documentos oficiales del BCU recuperados para esta consulta:\n\n${docsContext}\n\nConsulta del usuario: ${message}`
+          : `Consulta del usuario: ${message}`,
+      },
+    ];
 
-    const userMessage = docsContext
-      ? `Documentos oficiales del BCU recuperados para esta consulta:\n\n${docsContext}\n\nConsulta del usuario: ${message}`
-      : `Consulta del usuario: ${message}`;
-
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      systemInstruction: SYSTEM_PROMPT,
+    const stream = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: groqMessages,
+      stream: true,
     });
 
-    const chat = model.startChat({ history: geminiHistory });
-    const result = await chat.sendMessageStream(userMessage);
-
-    for await (const chunk of result.stream) {
-      const text = chunk.text();
+    for await (const chunk of stream) {
+      const text = chunk.choices[0]?.delta?.content || '';
       if (text) {
         res.write(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`);
       }
