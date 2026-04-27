@@ -28,7 +28,7 @@ const BCU_SOURCES = [
   {
     name: 'RNRCSF — Recopilación de Normas del Sistema Financiero (PDF oficial)',
     url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Sistema%20Financiero/RNRCSF.pdf',
-    keywords: ['rnrcsf', 'recopilación', 'banco', 'financiero', 'crédito', 'depósito', 'préstamo', 'capital', 'liquidez', 'encaje', 'solvencia', 'patrimonio', 'clasificación', 'provisiones', 'riesgo', 'gobierno corporativo', 'entidad financiera', 'institución financiera', 'cooperativa', 'casa de cambio', 'norma', 'reglamento'],
+    keywords: ['rnrcsf', 'recopilación', 'banco', 'financiero', 'crédito', 'depósito', 'préstamo', 'capital', 'liquidez', 'encaje', 'solvencia', 'patrimonio', 'clasificación', 'provisiones', 'riesgo', 'gobierno corporativo', 'entidad financiera', 'institución financiera', 'cooperativa', 'casa de cambio', 'norma', 'reglamento', 'sociedad', 'sociedades', 'no financiera', 'no financieras', 'empresa pública', 'empresas públicas', 'sector público'],
   },
   {
     name: 'Normativa BCU — Página Principal',
@@ -86,62 +86,72 @@ async function fetchBCUPage(source) {
 
   const isPDF = source.url.toLowerCase().includes('.pdf');
 
-  try {
-    if (isPDF) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      if (isPDF) {
+        const res = await axios.get(source.url, {
+          headers: { ...HTTP_HEADERS, Accept: 'application/pdf,*/*' },
+          timeout: 40000,
+          maxRedirects: 5,
+          httpsAgent: bcuAgent,
+          responseType: 'arraybuffer',
+        });
+
+        const pdf = await pdfParse(Buffer.from(res.data));
+        const content = pdf.text.replace(/\s+/g, ' ').trim();
+
+        const data = { name: source.name, url: source.url, content, isPDF: true, links: [], fetchedAt: new Date().toISOString() };
+        docCache.set(source.url, { data, ts: Date.now() });
+        return data;
+      }
+
       const res = await axios.get(source.url, {
-        headers: { ...HTTP_HEADERS, Accept: 'application/pdf,*/*' },
-        timeout: 40000,
+        headers: HTTP_HEADERS,
+        timeout: 20000,
         maxRedirects: 5,
         httpsAgent: bcuAgent,
-        responseType: 'arraybuffer',
       });
 
-      const pdf = await pdfParse(Buffer.from(res.data));
-      const content = pdf.text.replace(/\s+/g, ' ').trim(); // texto completo, sin límite
+      const $ = cheerio.load(res.data);
+      $('script, style, nav, header, footer, #s4-ribbonrow, .ms-nav, .ms-siteactionsmenu, #DeltaSiteLogo').remove();
 
-      const data = { name: source.name, url: source.url, content, isPDF: true, links: [], fetchedAt: new Date().toISOString() };
+      const pdfLinks = [];
+      $('a[href]').each((_, el) => {
+        const href = $(el).attr('href') || '';
+        const text = $(el).text().trim();
+        if (href && (href.toLowerCase().includes('.pdf') || href.includes('/Circulares/') || href.includes('/Normativa/'))) {
+          const fullUrl = href.startsWith('http') ? href : `https://www.bcu.gub.uy${href}`;
+          if (text && !pdfLinks.find(l => l.url === fullUrl)) {
+            pdfLinks.push({ text: text.substring(0, 120), url: fullUrl });
+          }
+        }
+      });
+
+      const rawText = $('body').text().replace(/\s+/g, ' ').trim();
+      const content = rawText.substring(0, 12000);
+
+      const data = {
+        name: source.name,
+        url: source.url,
+        content,
+        links: pdfLinks.slice(0, 25),
+        fetchedAt: new Date().toISOString(),
+      };
       docCache.set(source.url, { data, ts: Date.now() });
       return data;
+    } catch (err) {
+      console.error(`[BCU fetch error] intento ${attempt + 1} ${source.url}: ${err.message}`);
+      if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
     }
-
-    const res = await axios.get(source.url, {
-      headers: HTTP_HEADERS,
-      timeout: 12000,
-      maxRedirects: 5,
-      httpsAgent: bcuAgent,
-    });
-
-    const $ = cheerio.load(res.data);
-    $('script, style, nav, header, footer, #s4-ribbonrow, .ms-nav, .ms-siteactionsmenu, #DeltaSiteLogo').remove();
-
-    const pdfLinks = [];
-    $('a[href]').each((_, el) => {
-      const href = $(el).attr('href') || '';
-      const text = $(el).text().trim();
-      if (href && (href.toLowerCase().includes('.pdf') || href.includes('/Circulares/') || href.includes('/Normativa/'))) {
-        const fullUrl = href.startsWith('http') ? href : `https://www.bcu.gub.uy${href}`;
-        if (text && !pdfLinks.find(l => l.url === fullUrl)) {
-          pdfLinks.push({ text: text.substring(0, 120), url: fullUrl });
-        }
-      }
-    });
-
-    const rawText = $('body').text().replace(/\s+/g, ' ').trim();
-    const content = rawText.substring(0, 12000);
-
-    const data = {
-      name: source.name,
-      url: source.url,
-      content,
-      links: pdfLinks.slice(0, 25),
-      fetchedAt: new Date().toISOString(),
-    };
-    docCache.set(source.url, { data, ts: Date.now() });
-    return data;
-  } catch (err) {
-    console.error(`[BCU fetch error] ${source.url}: ${err.message}`);
-    return null;
   }
+
+  // Si el fetch falló, usar caché vencida antes de devolver null
+  if (cached) {
+    console.warn(`[BCU cache] Usando caché vencida para ${source.url}`);
+    return cached.data;
+  }
+
+  return null;
 }
 
 function extractRelevantSections(text, query, maxLength = 20000) {
