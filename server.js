@@ -47,7 +47,7 @@ const BCU_SOURCES = [
   },
   {
     name: 'Prevención de Lavado de Activos y Financiamiento del Terrorismo',
-    url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/PrevLavado.aspx',
+    url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Normativa-UIAF.aspx',
     keywords: ['lavado', 'activos', 'compliance', 'debida diligencia', 'antilavado', 'aml', 'ftf', 'financiamiento terrorismo', 'kyc', 'conozca su cliente', 'pep', 'persona políticamente expuesta', 'sarlaft'],
   },
   {
