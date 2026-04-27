@@ -44,21 +44,21 @@ async function fetchCotizaciones() {
   const desde = new Date(hoy); desde.setDate(hoy.getDate() - 7); // 7 días cubre fines de semana y feriados
 
   const soap = `<?xml version="1.0" encoding="utf-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:awl="http://awsbcucotiz.bcu.gub.uy">
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:awl="http://awsbcucotizaciones.bcu.gub.uy">
   <soapenv:Header/>
   <soapenv:Body>
-    <awl:awsbcucotizRequest>
+    <awl:awsbcucotizacionesRequest>
       <Moneda>2222</Moneda>
       <FechaDesde>${fmt(desde)}</FechaDesde>
       <FechaHasta>${fmt(hoy)}</FechaHasta>
       <Grupo>0</Grupo>
-    </awl:awsbcucotizRequest>
+    </awl:awsbcucotizacionesRequest>
   </soapenv:Body>
 </soapenv:Envelope>`;
 
   try {
     const res = await axios.post(
-      'https://cotizaciones.bcu.gub.uy/wscotizaciones/servlet/awsbcucotiz',
+      'https://cotizaciones.bcu.gub.uy/wscotizaciones/servlet/awsbcucotizaciones',
       soap,
       { headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '' }, timeout: 8000, httpsAgent: bcuAgent }
     );
@@ -295,11 +295,13 @@ app.post('/api/chat', async (req, res) => {
 
     console.log(`\n[Chat] Consulta: "${message}"`);
 
-    // 1. Para consultas de cotizaciones, usar el servicio SOAP del BCU directamente
+    // 1. Para consultas de cotizaciones: SOAP + página directa en paralelo
     if (isCotizQuery(message)) {
-      const cotiz = await fetchCotizaciones();
-      console.log(`[Chat] Cotizaciones SOAP: ${cotiz ? 'OK' : 'sin datos'}`);
+      const cotizPage = { name: 'Cotizaciones — BCU', url: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Paginas/Cotizaciones.aspx' };
+      const [cotiz, cotizHtml] = await Promise.all([fetchCotizaciones(), fetchHTML(cotizPage)]);
+      console.log(`[Chat] Cotizaciones SOAP: ${cotiz ? 'OK' : 'sin datos'} | Página HTML: ${cotizHtml ? 'OK' : 'sin datos'}`);
       if (cotiz) addDoc(cotiz);
+      if (cotizHtml) addDoc(cotizHtml);
     }
 
     // 2. Buscar en el buscador oficial del BCU con el mensaje del usuario
