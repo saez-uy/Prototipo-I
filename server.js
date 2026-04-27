@@ -67,6 +67,26 @@ const BCU_SOURCES = [
     url: 'https://www.bcu.gub.uy/Sistema-de-Pagos/Paginas/default.aspx',
     keywords: ['pago', 'transferencia', 'clearing', 'liquidación', 'cheque', 'dinero electrónico', 'medio de pago'],
   },
+  {
+    name: 'Cotizaciones — Dólar y Monedas Extranjeras',
+    url: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Paginas/Cotizaciones.aspx',
+    keywords: ['cotización', 'cotizacion', 'dólar', 'dolar', 'euro', 'moneda', 'tipo de cambio', 'divisa', 'compra', 'venta', 'arbitraje'],
+  },
+  {
+    name: 'Estadísticas e Indicadores — BCU',
+    url: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Paginas/Estadisticas-y-Estudios.aspx',
+    keywords: ['estadística', 'estadisticas', 'indicador', 'indicadores', 'datos', 'informe', 'reporte', 'economía', 'economia'],
+  },
+  {
+    name: 'Tasas de Interés Medias',
+    url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Tasas-Medias.aspx',
+    keywords: ['tasa', 'tasas', 'interés', 'interes', 'tasa de interés', 'tasa activa', 'tasa pasiva', 'préstamo', 'depósito'],
+  },
+  {
+    name: 'Inflación — Encuesta de Expectativas',
+    url: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Paginas/Encuesta-Inflacion.aspx',
+    keywords: ['inflación', 'inflacion', 'ipc', 'índice de precios', 'indice de precios', 'precios al consumo', 'expectativas'],
+  },
 ];
 
 const docCache = new Map();
