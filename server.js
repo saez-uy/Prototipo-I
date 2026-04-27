@@ -2,11 +2,11 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
-const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const path = require('path');
 
 const app = express();
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
@@ -172,45 +172,31 @@ app.post('/api/chat', async (req, res) => {
       }).join('\n\n---\n\n');
     }
 
-    const conversationMessages = history
+    const geminiHistory = history
       .filter(m => m.role && m.content)
-      .map(m => ({ role: m.role, content: m.content }));
+      .map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
 
-    const userContent = docsContext
-      ? [
-          {
-            type: 'text',
-            text: `Documentos oficiales del BCU recuperados para esta consulta:\n\n${docsContext}`,
-            cache_control: { type: 'ephemeral' },
-          },
-          {
-            type: 'text',
-            text: `Consulta del usuario: ${message}`,
-          },
-        ]
+    const userMessage = docsContext
+      ? `Documentos oficiales del BCU recuperados para esta consulta:\n\n${docsContext}\n\nConsulta del usuario: ${message}`
       : `Consulta del usuario: ${message}`;
 
-    conversationMessages.push({ role: 'user', content: userContent });
-
-    const stream = anthropic.messages.stream({
-      model: 'claude-opus-4-7',
-      max_tokens: 4096,
-      thinking: { type: 'adaptive' },
-      system: [
-        {
-          type: 'text',
-          text: SYSTEM_PROMPT,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages: conversationMessages,
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      systemInstruction: SYSTEM_PROMPT,
     });
 
-    stream.on('text', (text) => {
-      res.write(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`);
-    });
+    const chat = model.startChat({ history: geminiHistory });
+    const result = await chat.sendMessageStream(userMessage);
 
-    await stream.finalMessage();
+    for await (const chunk of result.stream) {
+      const text = chunk.text();
+      if (text) {
+        res.write(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`);
+      }
+    }
 
     const sourcesPayload = validDocs.map(d => ({ name: d.name, url: d.url }));
     if (validDocs.length === 0) {
