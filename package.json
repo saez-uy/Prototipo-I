@@ -8,7 +8,7 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "groq-sdk": "^0.9.0",
+    "openai": "^4.0.0",
     "pdf-parse": "^1.1.1",
     "axios": "^1.7.0",
     "cheerio": "^1.0.0",

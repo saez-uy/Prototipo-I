@@ -4,13 +4,13 @@ const axios = require('axios');
 const https = require('https');
 const cheerio = require('cheerio');
 const pdfParse = require('pdf-parse');
-const Groq = require('groq-sdk');
+const OpenAI = require('openai');
 const path = require('path');
 
 const bcuAgent = new https.Agent({ rejectUnauthorized: false });
 
 const app = express();
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
@@ -218,8 +218,8 @@ app.post('/api/chat', async (req, res) => {
       },
     ];
 
-    const stream = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+    const stream = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       messages: groqMessages,
       stream: true,
     });
