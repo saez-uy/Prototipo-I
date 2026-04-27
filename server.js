@@ -46,9 +46,24 @@ const BCU_SOURCES = [
     keywords: ['ley', 'decreto-ley', 'decreto', 'instituciones', 'bancos', 'legislación'],
   },
   {
-    name: 'Prevención de Lavado de Activos y Financiamiento del Terrorismo',
+    name: 'Prevención de Lavado de Activos y Financiamiento del Terrorismo — UIAF',
     url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Normativa-UIAF.aspx',
-    keywords: ['lavado', 'activos', 'compliance', 'debida diligencia', 'antilavado', 'aml', 'ftf', 'financiamiento terrorismo', 'kyc', 'conozca su cliente', 'pep', 'persona políticamente expuesta', 'sarlaft'],
+    keywords: ['lavado', 'activos', 'compliance', 'debida diligencia', 'antilavado', 'aml', 'ftf', 'financiamiento terrorismo', 'kyc', 'conozca su cliente', 'pep', 'persona políticamente expuesta', 'sarlaft', 'plaft', 'uiaf', 'prevención'],
+  },
+  {
+    name: 'RNMV — Recopilación de Normas del Mercado de Valores (PDF oficial)',
+    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Mercado%20de%20Valores/RNMV.pdf',
+    keywords: ['valores', 'bolsa', 'acciones', 'bonos', 'fideicomiso', 'fondo de inversión', 'mercado de capitales', 'calificadora', 'emisión', 'oferta pública', 'lavado', 'debida diligencia', 'plaft'],
+  },
+  {
+    name: 'RNSR — Recopilación de Normas de Seguros y Reaseguros (PDF oficial)',
+    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Seguros/RNSR.pdf',
+    keywords: ['seguro', 'reaseguro', 'aseguradora', 'póliza', 'prima', 'siniestro', 'lavado', 'debida diligencia', 'plaft'],
+  },
+  {
+    name: 'RNCFP — Recopilación de Normas de AFAP (PDF oficial)',
+    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Afap/RNCFP.pdf',
+    keywords: ['afap', 'jubilación', 'pensión', 'ahorro previsional', 'fondo previsional', 'lavado', 'debida diligencia', 'plaft'],
   },
   {
     name: 'Política Monetaria y Mercados',
@@ -56,12 +71,12 @@ const BCU_SOURCES = [
     keywords: ['monetaria', 'inflación', 'tasa de interés', 'tipo de cambio', 'dólar', 'peso uruguayo', 'comité de política monetaria', 'copom'],
   },
   {
-    name: 'Mercado de Valores',
+    name: 'Mercado de Valores — SSF',
     url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/MercadoDeValores.aspx',
     keywords: ['valores', 'bolsa', 'acciones', 'bonos', 'fideicomiso', 'fondo de inversión', 'mercado de capitales', 'calificadora', 'emisión', 'oferta pública'],
   },
   {
-    name: 'Seguros y Reaseguros',
+    name: 'Seguros y Reaseguros — SSF',
     url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Seguros.aspx',
     keywords: ['seguro', 'reaseguro', 'aseguradora', 'póliza', 'prima', 'siniestro', 'superintendencia seguros'],
   },
