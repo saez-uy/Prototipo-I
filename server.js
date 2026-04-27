@@ -162,12 +162,15 @@ async function fetchBCUDoc(source) {
 
   const isPDF = source.url.toLowerCase().includes('.pdf');
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // PDFs: 1 intento de 20s. HTML: hasta 2 intentos de 8s.
+  const maxAttempts = isPDF ? 1 : 2;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       if (isPDF) {
         const res = await axios.get(source.url, {
           headers: { ...HTTP_HEADERS, Accept: 'application/pdf,*/*' },
-          timeout: 40000,
+          timeout: 20000,
           maxRedirects: 5,
           httpsAgent: bcuAgent,
           responseType: 'arraybuffer',
@@ -181,7 +184,7 @@ async function fetchBCUDoc(source) {
 
       const res = await axios.get(source.url, {
         headers: HTTP_HEADERS,
-        timeout: 20000,
+        timeout: 8000,
         maxRedirects: 5,
         httpsAgent: bcuAgent,
       });
@@ -205,7 +208,7 @@ async function fetchBCUDoc(source) {
       docCache.set(source.url, { data, ts: Date.now() });
       return data;
     } catch {
-      if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
+      if (attempt === 0) await new Promise(r => setTimeout(r, 800));
     }
   }
 
@@ -297,28 +300,29 @@ app.post('/api/chat', async (req, res) => {
 
   try {
     const searchQuery = buildSearchQuery(message);
-    const staticSources = selectStaticSources(message);
 
-    // 1. Búsqueda en BCU + fetch de fuentes estáticas en paralelo
-    const [searchResults, staticDocs] = await Promise.all([
+    // 1. Búsqueda en BCU y fuentes estáticas corren en paralelo
+    const [searchResults, staticSources] = await Promise.all([
       searchBCU(searchQuery),
-      Promise.all(staticSources.map(fetchBCUDoc)),
+      Promise.resolve(selectStaticSources(message)),
     ]);
 
-    // 2. Los resultados de búsqueda van primero (más relevantes); luego fuentes estáticas sin repetir
+    // 2. Si la búsqueda encontró resultados, úsalos como fuentes principales.
+    //    Las fuentes estáticas se agregan solo si no están ya cubiertas por la búsqueda.
     const seenUrls = new Set(searchResults.map(r => r.url));
-    const extraStatic = staticSources.filter(s => !seenUrls.has(s.url));
-    const allSources = [...searchResults, ...extraStatic];
+    const fallbackStatic = searchResults.length > 0
+      ? staticSources.filter(s => !seenUrls.has(s.url) && !s.url.includes('.pdf'))
+      : staticSources;
 
-    // 3. Fetchear resultados de búsqueda (limitado a los 4 más relevantes para no saturar)
-    const searchDocs = await Promise.all(
-      searchResults.slice(0, 4).map(fetchBCUDoc)
-    );
+    const allSources = [...searchResults.slice(0, 4), ...fallbackStatic];
 
-    // 4. Combinar todos los documentos obtenidos, sin duplicados
+    // 3. Fetchear todos en paralelo
+    const fetchedDocs = await Promise.all(allSources.map(fetchBCUDoc));
+
+    // 4. Combinar sin duplicados
     const validDocs = [];
     const addedUrls = new Set();
-    for (const doc of [...searchDocs, ...staticDocs]) {
+    for (const doc of fetchedDocs) {
       if (doc && !addedUrls.has(doc.url)) {
         addedUrls.add(doc.url);
         validDocs.push(doc);
