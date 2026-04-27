@@ -140,16 +140,12 @@ async function fetchBCUPage(source) {
       docCache.set(source.url, { data, ts: Date.now() });
       return data;
     } catch (err) {
-      console.error(`[BCU fetch error] intento ${attempt + 1} ${source.url}: ${err.message}`);
       if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
     }
   }
 
   // Si el fetch falló, usar caché vencida antes de devolver null
-  if (cached) {
-    console.warn(`[BCU cache] Usando caché vencida para ${source.url}`);
-    return cached.data;
-  }
+  if (cached) return cached.data;
 
   return null;
 }
