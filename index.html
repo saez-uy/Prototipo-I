@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora Gorila</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Gorille_des_plaines_de_l%27ouest_%28Gorilla_gorilla_gorilla%29_au_Zoo_de_la_Palmyre_%282%29.jpg/1280px-Gorille_des_plaines_de_l%27ouest_%28Gorilla_gorilla_gorilla%29_au_Zoo_de_la_Palmyre_%282%29.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 0;
+    }
+
+    .calculator {
+      position: relative;
+      z-index: 1;
+      background: rgba(15, 15, 15, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 24px;
+      padding: 28px 24px 24px;
+      width: 320px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.05);
+    }
+
+    .calc-title {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 13px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .display {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 14px;
+      padding: 16px 20px 12px;
+      margin-bottom: 20px;
+      text-align: right;
+      min-height: 90px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .display-expression {
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 14px;
+      min-height: 20px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 6px;
+    }
+
+    .display-value {
+      color: #ffffff;
+      font-size: 40px;
+      font-weight: 300;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 18px 0;
+      font-size: 18px;
+      font-weight: 400;
+      cursor: pointer;
+      transition: all 0.1s ease;
+      outline: none;
+      user-select: none;
+    }
+
+    button:active {
+      transform: scale(0.93);
+    }
+
+    .btn-number {
+      background: rgba(80, 80, 80, 0.7);
+      color: #ffffff;
+    }
+
+    .btn-number:hover {
+      background: rgba(100, 100, 100, 0.8);
+    }
+
+    .btn-operator {
+      background: rgba(255, 159, 10, 0.85);
+      color: #ffffff;
+      font-size: 22px;
+    }
+
+    .btn-operator:hover {
+      background: rgba(255, 179, 50, 0.95);
+    }
+
+    .btn-function {
+      background: rgba(58, 58, 58, 0.85);
+      color: #ffffff;
+    }
+
+    .btn-function:hover {
+      background: rgba(80, 80, 80, 0.9);
+    }
+
+    .btn-equals {
+      background: rgba(255, 159, 10, 0.9);
+      color: #ffffff;
+      font-size: 22px;
+    }
+
+    .btn-equals:hover {
+      background: rgba(255, 179, 50, 1);
+    }
+
+    .btn-zero {
+      grid-column: span 2;
+      text-align: left;
+      padding-left: 24px;
+    }
+
+    .btn-danger {
+      background: rgba(200, 60, 60, 0.75);
+      color: #ffffff;
+    }
+
+    .btn-danger:hover {
+      background: rgba(220, 80, 80, 0.9);
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator">
+    <div class="calc-title">🦍 Calculadora</div>
+    <div class="display">
+      <div class="display-expression" id="expression"></div>
+      <div class="display-value" id="displayValue">0</div>
+    </div>
+    <div class="buttons">
+      <button class="btn-danger" onclick="clearAll()">AC</button>
+      <button class="btn-function" onclick="toggleSign()">+/-</button>
+      <button class="btn-function" onclick="percentage()">%</button>
+      <button class="btn-operator" onclick="setOperator('/')">÷</button>
+
+      <button class="btn-number" onclick="appendNumber('7')">7</button>
+      <button class="btn-number" onclick="appendNumber('8')">8</button>
+      <button class="btn-number" onclick="appendNumber('9')">9</button>
+      <button class="btn-operator" onclick="setOperator('*')">×</button>
+
+      <button class="btn-number" onclick="appendNumber('4')">4</button>
+      <button class="btn-number" onclick="appendNumber('5')">5</button>
+      <button class="btn-number" onclick="appendNumber('6')">6</button>
+      <button class="btn-operator" onclick="setOperator('-')">−</button>
+
+      <button class="btn-number" onclick="appendNumber('1')">1</button>
+      <button class="btn-number" onclick="appendNumber('2')">2</button>
+      <button class="btn-number" onclick="appendNumber('3')">3</button>
+      <button class="btn-operator" onclick="setOperator('+')">+</button>
+
+      <button class="btn-number btn-zero" onclick="appendNumber('0')">0</button>
+      <button class="btn-number" onclick="appendDecimal()">.</button>
+      <button class="btn-equals" onclick="calculate()">=</button>
+    </div>
+  </div>
+
+  <script>
+    let currentValue = '0';
+    let previousValue = '';
+    let operator = null;
+    let shouldResetDisplay = false;
+    let expression = '';
+
+    const display = document.getElementById('displayValue');
+    const expressionEl = document.getElementById('expression');
+
+    function updateDisplay(val) {
+      const num = parseFloat(val);
+      const str = isFinite(num) ? String(num) : val;
+      display.textContent = str.length > 12 ? parseFloat(num.toPrecision(9)).toString() : str;
+    }
+
+    function appendNumber(num) {
+      if (shouldResetDisplay) {
+        currentValue = num;
+        shouldResetDisplay = false;
+      } else {
+        currentValue = currentValue === '0' ? num : currentValue + num;
+      }
+      updateDisplay(currentValue);
+    }
+
+    function appendDecimal() {
+      if (shouldResetDisplay) {
+        currentValue = '0.';
+        shouldResetDisplay = false;
+      } else if (!currentValue.includes('.')) {
+        currentValue += '.';
+      }
+      updateDisplay(currentValue);
+    }
+
+    function setOperator(op) {
+      if (operator && !shouldResetDisplay) {
+        calculate(true);
+      }
+      previousValue = currentValue;
+      operator = op;
+      shouldResetDisplay = true;
+      const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+      expression = previousValue + ' ' + opSymbols[op];
+      expressionEl.textContent = expression;
+    }
+
+    function calculate(chained = false) {
+      if (!operator || !previousValue) return;
+      const a = parseFloat(previousValue);
+      const b = parseFloat(currentValue);
+      const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+      let result;
+
+      switch (operator) {
+        case '+': result = a + b; break;
+        case '-': result = a - b; break;
+        case '*': result = a * b; break;
+        case '/':
+          if (b === 0) { display.textContent = 'Error'; expression = ''; expressionEl.textContent = ''; operator = null; return; }
+          result = a / b;
+          break;
+      }
+
+      if (!chained) {
+        expressionEl.textContent = previousValue + ' ' + opSymbols[operator] + ' ' + currentValue + ' =';
+        operator = null;
+      }
+
+      currentValue = String(result);
+      previousValue = currentValue;
+      shouldResetDisplay = true;
+      updateDisplay(currentValue);
+    }
+
+    function clearAll() {
+      currentValue = '0';
+      previousValue = '';
+      operator = null;
+      shouldResetDisplay = false;
+      expression = '';
+      expressionEl.textContent = '';
+      updateDisplay('0');
+    }
+
+    function toggleSign() {
+      currentValue = String(parseFloat(currentValue) * -1);
+      updateDisplay(currentValue);
+    }
+
+    function percentage() {
+      currentValue = String(parseFloat(currentValue) / 100);
+      updateDisplay(currentValue);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key >= '0' && e.key <= '9') appendNumber(e.key);
+      else if (e.key === '.') appendDecimal();
+      else if (e.key === '+') setOperator('+');
+      else if (e.key === '-') setOperator('-');
+      else if (e.key === '*') setOperator('*');
+      else if (e.key === '/') { e.preventDefault(); setOperator('/'); }
+      else if (e.key === 'Enter' || e.key === '=') calculate();
+      else if (e.key === 'Escape') clearAll();
+      else if (e.key === 'Backspace') {
+        if (currentValue.length > 1) currentValue = currentValue.slice(0, -1);
+        else currentValue = '0';
+        updateDisplay(currentValue);
+      }
+    });
+  </script>
+</body>
+</html>
