@@ -24,48 +24,43 @@ const HTTP_HEADERS = {
   'Upgrade-Insecure-Requests': '1',
 };
 
-// Fuentes estáticas: siempre disponibles como respaldo si la búsqueda no retorna resultados.
-// La búsqueda dinámica en bcu.gub.uy/busqueda es el motor principal.
+// Fuentes estáticas de respaldo: solo páginas HTML de índice del BCU.
+// Los PDFs se descubren dinámicamente vía búsqueda o links en estas páginas.
 const BCU_SOURCES = [
-  {
-    name: 'RNRCSF — Recopilación de Normas del Sistema Financiero (PDF oficial)',
-    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Sistema%20Financiero/RNRCSF.pdf',
-    keywords: ['banco', 'financiero', 'crédito', 'depósito', 'préstamo', 'capital', 'liquidez', 'encaje', 'solvencia', 'patrimonio', 'clasificación', 'provisiones', 'riesgo', 'gobierno corporativo', 'entidad financiera', 'institución financiera', 'cooperativa', 'casa de cambio', 'sociedad', 'sociedades', 'no financiera', 'empresa pública', 'sector público'],
-  },
-  {
-    name: 'RNMV — Recopilación de Normas del Mercado de Valores (PDF oficial)',
-    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Mercado%20de%20Valores/RNMV.pdf',
-    keywords: ['valores', 'bolsa', 'acciones', 'bonos', 'fideicomiso', 'fondo de inversión', 'mercado de capitales', 'calificadora', 'emisión', 'oferta pública'],
-  },
-  {
-    name: 'RNSR — Recopilación de Normas de Seguros y Reaseguros (PDF oficial)',
-    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Seguros/RNSR.pdf',
-    keywords: ['seguro', 'reaseguro', 'aseguradora', 'póliza', 'prima', 'siniestro'],
-  },
-  {
-    name: 'RNCFP — Recopilación de Normas de AFAP (PDF oficial)',
-    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Afap/RNCFP.pdf',
-    keywords: ['afap', 'jubilación', 'pensión', 'ahorro previsional', 'fondo previsional'],
-  },
-  {
-    name: 'Normativa UIAF — Prevención de Lavado de Activos y Financiamiento del Terrorismo',
-    url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Normativa-UIAF.aspx',
-    keywords: ['lavado', 'activos', 'compliance', 'debida diligencia', 'antilavado', 'aml', 'financiamiento terrorismo', 'kyc', 'conozca su cliente', 'pep', 'persona políticamente expuesta', 'plaft', 'uiaf', 'prevención'],
-  },
   {
     name: 'Normativa BCU — Página Principal',
     url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Paginas/Normativa.aspx',
     keywords: ['normativa', 'regulación', 'circular', 'resolución', 'decreto', 'ley', 'reglamento'],
   },
   {
+    name: 'Recopilación de Normas — Sistema Financiero',
+    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Paginas/Recopilacion-de-Normas-Instituciones.aspx',
+    keywords: ['banco', 'financiero', 'entidad financiera', 'institución financiera', 'cooperativa', 'casa de cambio', 'sociedad', 'no financiera', 'sector público'],
+  },
+  {
     name: 'Leyes — Instituciones Financieras',
     url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Paginas/Leyes_Instituciones.aspx',
-    keywords: ['ley', 'decreto-ley', 'decreto', 'instituciones', 'legislación'],
+    keywords: ['ley', 'decreto-ley', 'decreto', 'legislación'],
+  },
+  {
+    name: 'Normativa UIAF — Prevención de Lavado de Activos',
+    url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Normativa-UIAF.aspx',
+    keywords: ['lavado', 'activos', 'compliance', 'debida diligencia', 'aml', 'financiamiento terrorismo', 'kyc', 'pep', 'plaft', 'uiaf', 'prevención'],
   },
   {
     name: 'Política Monetaria y Mercados',
     url: 'https://www.bcu.gub.uy/Politica-Economica-y-Mercados/Paginas/PoliticaMonetaria.aspx',
-    keywords: ['monetaria', 'inflación', 'tasa de interés', 'tipo de cambio', 'dólar', 'peso uruguayo', 'copom'],
+    keywords: ['monetaria', 'inflación', 'tasa de interés', 'tipo de cambio', 'dólar', 'copom'],
+  },
+  {
+    name: 'Mercado de Valores — SSF',
+    url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/MercadoDeValores.aspx',
+    keywords: ['valores', 'bolsa', 'acciones', 'bonos', 'fideicomiso', 'fondo de inversión', 'mercado de capitales', 'emisión', 'oferta pública'],
+  },
+  {
+    name: 'Seguros y Reaseguros — SSF',
+    url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Seguros.aspx',
+    keywords: ['seguro', 'reaseguro', 'aseguradora', 'póliza', 'prima', 'siniestro'],
   },
   {
     name: 'Sistema de Pagos',
@@ -131,29 +126,18 @@ async function searchBCU(query) {
   }
 }
 
-// Selecciona fuentes estáticas relevantes para la query (máx 2 + RNRCSF)
+// Selecciona hasta 3 fuentes estáticas (solo HTML) ordenadas por relevancia
 function selectStaticSources(query) {
   const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const q = norm(query);
 
-  const scored = BCU_SOURCES.map(src => ({
-    ...src,
-    score: src.keywords.reduce((acc, kw) => acc + (q.includes(norm(kw)) ? 1 : 0), 0),
-  })).sort((a, b) => b.score - a.score);
-
-  const selected = new Map();
-
-  // RNRCSF siempre incluido — compilación principal
-  const rnrcsf = BCU_SOURCES.find(s => s.url.includes('RNRCSF'));
-  if (rnrcsf) selected.set(rnrcsf.url, rnrcsf);
-
-  // Hasta 2 fuentes más con mayor puntaje
-  for (const src of scored) {
-    if (selected.size >= 3) break;
-    if (src.score > 0) selected.set(src.url, src);
-  }
-
-  return [...selected.values()];
+  return BCU_SOURCES
+    .map(src => ({
+      ...src,
+      score: src.keywords.reduce((acc, kw) => acc + (q.includes(norm(kw)) ? 1 : 0), 0),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
 }
 
 async function fetchBCUDoc(source) {
@@ -414,8 +398,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🏦  BCU Normativa Assistant → http://localhost:${PORT}\n`);
 
-  // Pre-calentar los PDFs principales en background
-  const toPrewarm = BCU_SOURCES.filter(s => s.url.includes('.pdf'));
-  console.log(`[Cache] Pre-cargando ${toPrewarm.length} PDFs en background...`);
-  toPrewarm.forEach(s => fetchBCUDoc(s).catch(() => {}));
+  // Pre-calentar las páginas HTML principales en background
+  console.log(`[Cache] Pre-cargando ${BCU_SOURCES.length} páginas en background...`);
+  BCU_SOURCES.forEach(s => fetchBCUDoc(s).catch(() => {}));
 });
