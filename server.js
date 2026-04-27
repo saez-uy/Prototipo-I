@@ -179,9 +179,9 @@ const FALLBACK_PAGES = [
   { name: 'Normativa BCU', url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Paginas/Normativa.aspx', keywords: ['normativa', 'circular', 'resolucion', 'decreto', 'ley', 'reglamento'] },
   { name: 'Recopilación Normas — Sistema Financiero', url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Paginas/Recopilacion-de-Normas-Instituciones.aspx', keywords: ['banco', 'financiero', 'entidad', 'cooperativa', 'casa de cambio'] },
   { name: 'Normativa UIAF — Lavado de Activos', url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Normativa-UIAF.aspx', keywords: ['lavado', 'activos', 'kyc', 'debida diligencia', 'aml', 'plaft', 'uiaf'] },
-  { name: 'Política Monetaria — BCU', url: 'https://www.bcu.gub.uy/Politica-Economica-y-Mercados/Paginas/PoliticaMonetaria.aspx', keywords: ['monetaria', 'inflacion', 'copom', 'politica'] },
-  { name: 'Mercado de Valores — BCU', url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/MercadoDeValores.aspx', keywords: ['valores', 'bolsa', 'acciones', 'bonos', 'fideicomiso'] },
-  { name: 'Seguros y Reaseguros — BCU', url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Seguros.aspx', keywords: ['seguro', 'reaseguro', 'poliza', 'prima', 'siniestro'] },
+  { name: 'Política Monetaria — BCU', url: 'https://www.bcu.gub.uy/Politica-Economica-y-Mercados/Paginas/Informe-de-Politica-Monetaria.aspx', keywords: ['monetaria', 'inflacion', 'copom', 'politica'] },
+  { name: 'Mercado de Valores — BCU', url: 'https://usuariofinanciero.bcu.gub.uy/mercado-de-valores/', keywords: ['valores', 'bolsa', 'acciones', 'bonos', 'fideicomiso'] },
+  { name: 'Seguros y Reaseguros — BCU', url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Paginas/Reordenamiento_Seguros.aspx', keywords: ['seguro', 'reaseguro', 'poliza', 'prima', 'siniestro'] },
   { name: 'Sistema de Pagos — BCU', url: 'https://www.bcu.gub.uy/Sistema-de-Pagos/Paginas/default.aspx', keywords: ['pago', 'transferencia', 'cheque', 'clearing'] },
 ];
 
