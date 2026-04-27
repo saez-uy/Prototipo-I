@@ -38,9 +38,10 @@ async function fetchCotizaciones() {
   const cached = getCache('__cotizaciones__', CACHE_TTL_COTIZ);
   if (cached) return cached;
 
+  // Formato YYYYMMDD sin depender de UTC
+  const fmt = (d) => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   const hoy = new Date();
-  const fmt = (d) => d.toISOString().slice(0, 10).replace(/-/g, '');
-  const ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 3); // margen para fines de semana
+  const desde = new Date(hoy); desde.setDate(hoy.getDate() - 7); // 7 días cubre fines de semana y feriados
 
   const soap = `<?xml version="1.0" encoding="utf-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:awl="http://awsbcucotiz.bcu.gub.uy">
@@ -48,7 +49,7 @@ async function fetchCotizaciones() {
   <soapenv:Body>
     <awl:awsbcucotizRequest>
       <Moneda>2222</Moneda>
-      <FechaDesde>${fmt(ayer)}</FechaDesde>
+      <FechaDesde>${fmt(desde)}</FechaDesde>
       <FechaHasta>${fmt(hoy)}</FechaHasta>
       <Grupo>0</Grupo>
     </awl:awsbcucotizRequest>
@@ -59,26 +60,41 @@ async function fetchCotizaciones() {
     const res = await axios.post(
       'https://cotizaciones.bcu.gub.uy/wscotizaciones/servlet/awsbcucotiz',
       soap,
-      { headers: { 'Content-Type': 'text/xml; charset=utf-8' }, timeout: 8000, httpsAgent: bcuAgent }
+      { headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '' }, timeout: 8000, httpsAgent: bcuAgent }
     );
 
-    const xml = res.data;
-    const get = (tag) => { const m = xml.match(new RegExp(`<[^:]*:?${tag}[^>]*>([^<]+)<`)); return m ? m[1].trim() : null; };
+    const xml = typeof res.data === 'string' ? res.data : String(res.data);
+    console.log('[SOAP cotiz] HTTP', res.status, '— respuesta (primeros 400 chars):', xml.substring(0, 400));
 
-    const rows = [...xml.matchAll(/<Datoscotizaciones>([\s\S]*?)<\/Datoscotizaciones>/gi)];
-    const lines = rows.map(r => {
-      const block = r[1];
-      const g = (t) => { const m = block.match(new RegExp(`<[^:]*:?${t}[^>]*>([^<]+)<`)); return m ? m[1].trim() : '?'; };
-      return `  Fecha: ${g('Fecha')} | Compra: ${g('Compra')} | Venta: ${g('Venta')}`;
-    });
+    // Flexible: maneja prefijos de namespace en los tags
+    const rowRegex = /<[^>]*:?Datoscotizaciones[^>]*>([\s\S]*?)<\/[^>]*:?Datoscotizaciones>/gi;
+    const rows = [...xml.matchAll(rowRegex)];
+    console.log('[SOAP cotiz] filas encontradas:', rows.length);
 
-    if (lines.length === 0) return null;
+    const g = (block, tag) => {
+      const m = block.match(new RegExp(`<[^>:]*:?${tag}[^>]*>\\s*([^<]+?)\\s*<`));
+      return m ? m[1].trim() : null;
+    };
 
-    const content = `Cotizaciones del dólar estadounidense (USD) — Fuente: Banco Central del Uruguay\n\n${lines.join('\n')}\n\nFuente oficial: https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Paginas/Cotizaciones.aspx`;
+    const entries = rows.map(r => ({
+      fecha: g(r[1], 'Fecha'),
+      compra: g(r[1], 'Compra'),
+      venta: g(r[1], 'Venta'),
+    })).filter(e => e.compra || e.venta);
+
+    if (entries.length === 0) {
+      console.log('[SOAP cotiz] Sin datos en la respuesta');
+      return null;
+    }
+
+    // La más reciente al final
+    const last = entries[entries.length - 1];
+    const content = `Cotización del dólar estadounidense (USD) según el Banco Central del Uruguay:\n\nFecha: ${last.fecha || 'última disponible'}\nCompra: ${last.compra}\nVenta: ${last.venta}\n\nFuente: https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Paginas/Cotizaciones.aspx`;
     const data = { name: 'Cotizaciones BCU — Dólar (USD)', url: 'https://www.bcu.gub.uy/Estadisticas-e-Indicadores/Paginas/Cotizaciones.aspx', content, isPDF: false, links: [] };
     cache.set('__cotizaciones__', { data, ts: Date.now() });
     return data;
-  } catch {
+  } catch (err) {
+    console.log('[SOAP cotiz] Error:', err.message);
     return null;
   }
 }
