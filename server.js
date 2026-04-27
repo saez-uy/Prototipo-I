@@ -275,27 +275,33 @@ app.post('/api/chat', async (req, res) => {
   try {
     const docs = [];
     const seen = new Set();
-
     const addDoc = (d) => { if (d && !seen.has(d.url)) { seen.add(d.url); docs.push(d); } };
+
+    console.log(`\n[Chat] Consulta: "${message}"`);
 
     // 1. Para consultas de cotizaciones, usar el servicio SOAP del BCU directamente
     if (isCotizQuery(message)) {
       const cotiz = await fetchCotizaciones();
+      console.log(`[Chat] Cotizaciones SOAP: ${cotiz ? 'OK' : 'sin datos'}`);
       if (cotiz) addDoc(cotiz);
     }
 
     // 2. Buscar en el buscador oficial del BCU con el mensaje del usuario
     const searchResults = await searchBCU(message);
+    console.log(`[Chat] BCU search devolvió ${searchResults.length} resultado(s)`);
 
     // 3. Fetchear los resultados de búsqueda en paralelo
     const searchDocs = await Promise.all(searchResults.map(fetchDoc));
     searchDocs.forEach(addDoc);
+    console.log(`[Chat] Documentos de búsqueda obtenidos: ${searchDocs.filter(Boolean).length}/${searchResults.length}`);
 
     // 4. Si la búsqueda no dio resultados, usar páginas de respaldo
     if (searchResults.length === 0) {
       const fallback = selectFallbackPages(message);
+      console.log(`[Chat] Sin resultados de búsqueda — usando ${fallback.length} páginas de respaldo`);
       const fallbackDocs = await Promise.all(fallback.map(fetchHTML));
       fallbackDocs.forEach(addDoc);
+      console.log(`[Chat] Páginas de respaldo obtenidas: ${fallbackDocs.filter(Boolean).length}/${fallback.length}`);
     }
 
     // 5. Desde las páginas HTML obtenidas, buscar y descargar PDFs relevantes
@@ -318,8 +324,11 @@ app.post('/api/chat', async (req, res) => {
       pdfDocs.forEach(addDoc);
     }
 
+    console.log(`[Chat] Total documentos disponibles para GPT: ${docs.length} — ${docs.map(d => d.name).join(' | ')}`);
+
     // 6. Sin ningún documento: BCU inaccesible
     if (docs.length === 0) {
+      console.log('[Chat] BCU inaccesible — sin documentos');
       res.write(`data: ${JSON.stringify({ type: 'text', content: 'No pude acceder al sitio oficial del BCU en este momento. Por favor intentá de nuevo o consultá directamente en [bcu.gub.uy](https://www.bcu.gub.uy).' })}\n\n`);
       res.write(`data: ${JSON.stringify({ type: 'sources', sources: [] })}\n\n`);
       res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
@@ -340,6 +349,7 @@ app.post('/api/chat', async (req, res) => {
       { role: 'user', content: `Documentos obtenidos de bcu.gub.uy:\n\n${context}\n\nPregunta: ${message}` },
     ];
 
+    console.log('[Chat] Llamando a OpenAI...');
     const stream = await openai.chat.completions.create({ model: 'gpt-4o-mini', messages, stream: true });
 
     for await (const chunk of stream) {
