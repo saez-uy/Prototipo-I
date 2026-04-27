@@ -3,6 +3,7 @@ const express = require('express');
 const axios = require('axios');
 const https = require('https');
 const cheerio = require('cheerio');
+const pdfParse = require('pdf-parse');
 const Groq = require('groq-sdk');
 const path = require('path');
 
@@ -25,14 +26,19 @@ const HTTP_HEADERS = {
 
 const BCU_SOURCES = [
   {
-    name: 'Normativa BCU — Página Principal',
-    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Paginas/Normativa.aspx',
-    keywords: ['normativa', 'regulación', 'circular', 'resolución', 'decreto', 'ley', 'reglamento', 'norma'],
+    name: 'RNRCSF — Recopilación de Normas del Sistema Financiero (PDF oficial)',
+    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Sistema%20Financiero/RNRCSF.pdf',
+    keywords: ['rnrcsf', 'recopilación', 'banco', 'financiero', 'crédito', 'depósito', 'préstamo', 'capital', 'liquidez', 'encaje', 'solvencia', 'patrimonio', 'clasificación', 'provisiones', 'riesgo', 'gobierno corporativo', 'entidad financiera', 'institución financiera', 'cooperativa', 'casa de cambio', 'norma', 'reglamento'],
   },
   {
-    name: 'Recopilación de Normas — Sistema Financiero',
+    name: 'Normativa BCU — Página Principal',
+    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Paginas/Normativa.aspx',
+    keywords: ['normativa', 'regulación', 'circular', 'resolución', 'decreto', 'ley', 'reglamento'],
+  },
+  {
+    name: 'Recopilación de Normas — Sistema Financiero (índice)',
     url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Paginas/Recopilacion-de-Normas-Instituciones.aspx',
-    keywords: ['banco', 'financiero', 'crédito', 'depósito', 'préstamo', 'capital', 'liquidez', 'encaje', 'entidad financiera', 'institución financiera', 'cooperativa', 'casa de cambio'],
+    keywords: ['banco', 'financiero', 'entidad financiera', 'institución financiera', 'cooperativa', 'casa de cambio', 'índice'],
   },
   {
     name: 'Leyes — Instituciones Financieras',
@@ -78,7 +84,27 @@ async function fetchBCUPage(source) {
   const cached = docCache.get(source.url);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.data;
 
+  const isPDF = source.url.toLowerCase().includes('.pdf');
+
   try {
+    if (isPDF) {
+      const res = await axios.get(source.url, {
+        headers: { ...HTTP_HEADERS, Accept: 'application/pdf,*/*' },
+        timeout: 40000,
+        maxRedirects: 5,
+        httpsAgent: bcuAgent,
+        responseType: 'arraybuffer',
+      });
+
+      const pdf = await pdfParse(Buffer.from(res.data));
+      const fullText = pdf.text.replace(/\s+/g, ' ').trim();
+      const content = fullText.substring(0, 25000);
+
+      const data = { name: source.name, url: source.url, content, links: [], fetchedAt: new Date().toISOString() };
+      docCache.set(source.url, { data, ts: Date.now() });
+      return data;
+    }
+
     const res = await axios.get(source.url, {
       headers: HTTP_HEADERS,
       timeout: 12000,
