@@ -97,10 +97,9 @@ async function fetchBCUPage(source) {
       });
 
       const pdf = await pdfParse(Buffer.from(res.data));
-      const fullText = pdf.text.replace(/\s+/g, ' ').trim();
-      const content = fullText.substring(0, 25000);
+      const content = pdf.text.replace(/\s+/g, ' ').trim(); // texto completo, sin límite
 
-      const data = { name: source.name, url: source.url, content, links: [], fetchedAt: new Date().toISOString() };
+      const data = { name: source.name, url: source.url, content, isPDF: true, links: [], fetchedAt: new Date().toISOString() };
       docCache.set(source.url, { data, ts: Date.now() });
       return data;
     }
@@ -143,6 +142,56 @@ async function fetchBCUPage(source) {
     console.error(`[BCU fetch error] ${source.url}: ${err.message}`);
     return null;
   }
+}
+
+function extractRelevantSections(text, query, maxLength = 20000) {
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const textNorm = norm(text);
+  const queryNorm = norm(query);
+
+  const terms = new Set();
+
+  // Números de artículo mencionados en la consulta
+  const nums = query.match(/\b\d{1,4}\b/g);
+  if (nums) nums.forEach(n => {
+    terms.add(n);
+    terms.add(`articulo ${n}`);
+    terms.add(`art. ${n}`);
+    terms.add(`art ${n}`);
+  });
+
+  // Palabras clave significativas de la consulta
+  const stopWords = new Set(['que', 'del', 'los', 'las', 'una', 'unos', 'unas', 'por', 'con', 'para', 'como', 'dice', 'cual', 'este', 'esta', 'hace', 'sobre']);
+  query.split(/\s+/).forEach(w => {
+    const wn = norm(w.replace(/[^a-z0-9áéíóúüñ]/gi, ''));
+    if (wn.length > 3 && !stopWords.has(wn)) terms.add(wn);
+  });
+
+  const windowSize = 4000;
+  const sections = [];
+  const used = [];
+
+  for (const term of terms) {
+    const t = norm(term);
+    let pos = 0;
+    while (pos < textNorm.length) {
+      const idx = textNorm.indexOf(t, pos);
+      if (idx === -1) break;
+      const start = Math.max(0, idx - 300);
+      const end = Math.min(text.length, idx + windowSize);
+      const overlaps = used.some(([s, e]) => !(end <= s || start >= e));
+      if (!overlaps) {
+        used.push([start, end]);
+        sections.push(text.substring(start, end));
+        if (sections.join('').length >= maxLength) break;
+      }
+      pos = idx + t.length + 500;
+    }
+    if (sections.join('').length >= maxLength) break;
+  }
+
+  if (sections.length === 0) return text.substring(0, maxLength);
+  return sections.join('\n\n[...]\n\n').substring(0, maxLength);
 }
 
 function selectSources(query) {
@@ -200,8 +249,11 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const docsContext = validDocs.map(doc => {
-      let section = `### ${doc.name}\n**URL:** ${doc.url}\n\n${doc.content}`;
-      if (doc.links.length > 0) {
+      const content = doc.isPDF
+        ? extractRelevantSections(doc.content, message)
+        : doc.content;
+      let section = `### ${doc.name}\n**URL:** ${doc.url}\n\n${content}`;
+      if (doc.links && doc.links.length > 0) {
         section += `\n\n**Documentos y enlaces encontrados:**\n${doc.links.map(l => `- ${l.text}: ${l.url}`).join('\n')}`;
       }
       return section;
