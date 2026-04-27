@@ -127,7 +127,7 @@ async function fetchBCUPage(source) {
     });
 
     const rawText = $('body').text().replace(/\s+/g, ' ').trim();
-    const content = rawText.substring(0, 7000);
+    const content = rawText.substring(0, 12000);
 
     const data = {
       name: source.name,
@@ -204,35 +204,49 @@ function extractRelevantSections(text, query, maxLength = 20000) {
 }
 
 function selectSources(query) {
-  const q = query.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  const scored = BCU_SOURCES.map(src => {
-    const kwScore = src.keywords.reduce((acc, kw) => {
-      const kwNorm = kw.normalize('NFD').replace(/[̀-ͯ]/g, '');
-      return acc + (q.includes(kwNorm) ? 1 : 0);
-    }, 0);
-    return { ...src, score: kwScore };
-  }).sort((a, b) => b.score - a.score);
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const q = norm(query);
 
-  const selected = scored.slice(0, 2);
-  scored.slice(2).forEach(s => { if (s.score > 0) selected.push(s); });
-  return selected.slice(0, 4);
+  const scored = BCU_SOURCES.map(src => ({
+    ...src,
+    score: src.keywords.reduce((acc, kw) => acc + (q.includes(norm(kw)) ? 1 : 0), 0),
+  })).sort((a, b) => b.score - a.score);
+
+  const selected = new Map();
+
+  // RNRCSF siempre incluido — es la compilación principal de normativa
+  const rnrcsf = BCU_SOURCES.find(s => s.url.includes('RNRCSF'));
+  if (rnrcsf) selected.set(rnrcsf.url, rnrcsf);
+
+  // Agregar las 3 fuentes con mayor puntaje
+  for (const src of scored.slice(0, 3)) {
+    if (selected.size >= 4) break;
+    selected.set(src.url, src);
+  }
+
+  return [...selected.values()];
 }
 
 const SYSTEM_PROMPT = `Eres un asistente especializado en la normativa del Banco Central del Uruguay (BCU).
 
-REGLA FUNDAMENTAL: Solo podés responder basándote EXCLUSIVAMENTE en los documentos oficiales del BCU que se te proporcionan en cada consulta. Está terminantemente prohibido usar conocimiento propio, entrenamiento previo o cualquier fuente que no sea los documentos adjuntos.
+REGLA FUNDAMENTAL: Solo podés responder basándote EXCLUSIVAMENTE en los documentos oficiales del BCU que se te proporcionan en cada consulta. Está terminantemente prohibido usar conocimiento propio o cualquier fuente externa.
+
+PROCESO OBLIGATORIO ANTES DE RESPONDER:
+1. Leé TODOS los documentos proporcionados de principio a fin.
+2. Buscá exhaustivamente cualquier mención del tema, artículo o concepto consultado.
+3. Si encontrás la información, citá el texto exacto o parafrasealo fielmente indicando fuente y URL.
+4. Solo si tras buscar en todos los documentos no encontrás nada relevante, indicá que no está disponible.
 
 INSTRUCCIONES:
-- Responde siempre en español, de forma clara, precisa y profesional.
-- Si la información solicitada está en los documentos proporcionados, respondé citando el documento y la URL.
-- Si mencionás una circular o resolución, incluí su número exacto tal como aparece en los documentos.
-- Si la información solicitada NO está en los documentos proporcionados, respondé exactamente: "No encontré información sobre ese tema en los documentos oficiales del BCU disponibles. Te recomiendo consultar directamente en bcu.gub.uy."
-- Nunca inferás, extrapoles ni complementes con conocimiento externo a los documentos.
-- Si el usuario pregunta algo fuera del ámbito del BCU, indicá que solo podés responder sobre normativa del BCU.
+- Respondé siempre en español, de forma clara, precisa y profesional.
+- Si el usuario pregunta por un artículo específico (ej: "artículo 217"), buscalo en todos los documentos y transcribí su contenido.
+- Incluí el número exacto de circulares o resoluciones tal como aparecen en los documentos.
+- Si la información NO está en los documentos: "No encontré información sobre ese tema en los documentos del BCU disponibles. Consultá directamente en bcu.gub.uy."
+- Nunca inferás ni extrapolés más allá de lo que dicen textualmente los documentos.
 
 FORMATO:
-- Usá listas cuando sea apropiado para facilitar la lectura.
-- Para referencias normativas usá: **[Tipo] Nº [número] — [Descripción breve]**
+- Usá listas cuando sea apropiado.
+- Para referencias normativas: **[Tipo] Nº [número] — [Descripción breve]**
 - Incluí al final las fuentes consultadas con su URL.`;
 
 app.post('/api/chat', async (req, res) => {
@@ -284,10 +298,10 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
-    // Descargar los 2 PDFs más relevantes encontrados dinámicamente
+    // Descargar los 3 PDFs más relevantes encontrados dinámicamente
     if (pdfCandidates.length > 0) {
       pdfCandidates.sort((a, b) => b.score - a.score);
-      const topPDFs = pdfCandidates.slice(0, 2);
+      const topPDFs = pdfCandidates.slice(0, 3);
       const pdfDocs = await Promise.all(topPDFs.map(fetchBCUPage));
       pdfDocs.filter(Boolean).forEach(d => validDocs.push(d));
     }
@@ -344,4 +358,15 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🏦  BCU Normativa Assistant → http://localhost:${PORT}\n`);
+
+  // Pre-cargar documentos principales en background al arrancar
+  const toPrewarm = BCU_SOURCES.filter(s =>
+    s.url.includes('RNRCSF') ||
+    s.url.includes('Normativa.aspx') ||
+    s.url.includes('PrevLavado') ||
+    s.url.includes('MercadoDeValores') ||
+    s.url.includes('Seguros')
+  );
+  console.log(`[Cache] Pre-cargando ${toPrewarm.length} documentos en background...`);
+  toPrewarm.forEach(s => fetchBCUPage(s).catch(() => {}));
 });
