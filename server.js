@@ -80,6 +80,58 @@ const BCU_SOURCES = [
 const docCache = new Map();
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
+function buildSearchQuery(message) {
+  const stopWords = new Set([
+    'que', 'son', 'cual', 'cuales', 'como', 'cuando', 'donde', 'por', 'para',
+    'con', 'del', 'los', 'las', 'una', 'unos', 'unas', 'hay', 'sobre', 'segun',
+    'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'tiene', 'tienen', 'debo',
+    'puedo', 'puede', 'quiero', 'necesito', 'mas', 'pero', 'porque', 'aunque',
+    'tambien', 'muy', 'bien', 'mal', 'cuales', 'quien', 'quienes', 'podes',
+    'decir', 'dime', 'hablar', 'favor', 'hola', 'gracias',
+  ]);
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const words = norm(message)
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !stopWords.has(w));
+  return [...new Set(words)].slice(0, 6).join(' ');
+}
+
+async function searchBCU(query) {
+  if (!query.trim()) return [];
+  const searchUrl = `https://www.bcu.gub.uy/busqueda/Paginas/Results.aspx?k=${encodeURIComponent(query)}`;
+  try {
+    const res = await axios.get(searchUrl, {
+      headers: HTTP_HEADERS,
+      timeout: 15000,
+      maxRedirects: 5,
+      httpsAgent: bcuAgent,
+    });
+    const $ = cheerio.load(res.data);
+    const results = [];
+    const seen = new Set();
+    $('a[href]').each((_, el) => {
+      const href = $(el).attr('href') || '';
+      const text = $(el).text().trim();
+      if (!href || text.length < 5) return;
+      if (href.includes('busqueda') || href.includes('javascript:') || href.startsWith('#')) return;
+      const isBCU = href.includes('bcu.gub.uy') || href.startsWith('/');
+      const isPDF = href.toLowerCase().endsWith('.pdf');
+      const isPage = href.includes('/Normativa/') || href.includes('/Circulares/') || href.includes('/Paginas/');
+      if (isBCU && (isPDF || isPage)) {
+        const fullUrl = href.startsWith('http') ? href : `https://www.bcu.gub.uy${href}`;
+        if (!seen.has(fullUrl)) {
+          seen.add(fullUrl);
+          results.push({ name: text.substring(0, 120), url: fullUrl, score: isPDF ? 2 : 1 });
+        }
+      }
+    });
+    return results.sort((a, b) => b.score - a.score).slice(0, 5);
+  } catch {
+    return [];
+  }
+}
+
 async function fetchBCUPage(source) {
   const cached = docCache.get(source.url);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.data;
@@ -283,8 +335,20 @@ app.post('/api/chat', async (req, res) => {
 
   try {
     const sources = selectSources(message);
-    const fetchedDocs = await Promise.all(sources.map(fetchBCUPage));
-    const validDocs = fetchedDocs.filter(Boolean);
+    const searchQuery = buildSearchQuery(message);
+
+    // Buscar en BCU y fetchear fuentes predefinidas en paralelo
+    const [fetchedDocs, searchResults] = await Promise.all([
+      Promise.all(sources.map(fetchBCUPage)),
+      searchBCU(searchQuery),
+    ]);
+
+    // Agregar resultados de búsqueda que no fueron ya fetcheados
+    const fetchedUrls = new Set(sources.map(s => s.url));
+    const extraSources = searchResults.filter(r => !fetchedUrls.has(r.url));
+    const searchDocs = await Promise.all(extraSources.map(fetchBCUPage));
+
+    const validDocs = [...fetchedDocs, ...searchDocs].filter(Boolean);
 
     if (validDocs.length === 0) {
       const fallbackMessages = [
