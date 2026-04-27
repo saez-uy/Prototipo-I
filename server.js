@@ -24,11 +24,33 @@ const HTTP_HEADERS = {
   'Upgrade-Insecure-Requests': '1',
 };
 
+// Fuentes estáticas: siempre disponibles como respaldo si la búsqueda no retorna resultados.
+// La búsqueda dinámica en bcu.gub.uy/busqueda es el motor principal.
 const BCU_SOURCES = [
   {
     name: 'RNRCSF — Recopilación de Normas del Sistema Financiero (PDF oficial)',
     url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Sistema%20Financiero/RNRCSF.pdf',
-    keywords: ['rnrcsf', 'recopilación', 'banco', 'financiero', 'crédito', 'depósito', 'préstamo', 'capital', 'liquidez', 'encaje', 'solvencia', 'patrimonio', 'clasificación', 'provisiones', 'riesgo', 'gobierno corporativo', 'entidad financiera', 'institución financiera', 'cooperativa', 'casa de cambio', 'norma', 'reglamento', 'sociedad', 'sociedades', 'no financiera', 'no financieras', 'empresa pública', 'empresas públicas', 'sector público'],
+    keywords: ['banco', 'financiero', 'crédito', 'depósito', 'préstamo', 'capital', 'liquidez', 'encaje', 'solvencia', 'patrimonio', 'clasificación', 'provisiones', 'riesgo', 'gobierno corporativo', 'entidad financiera', 'institución financiera', 'cooperativa', 'casa de cambio', 'sociedad', 'sociedades', 'no financiera', 'empresa pública', 'sector público'],
+  },
+  {
+    name: 'RNMV — Recopilación de Normas del Mercado de Valores (PDF oficial)',
+    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Mercado%20de%20Valores/RNMV.pdf',
+    keywords: ['valores', 'bolsa', 'acciones', 'bonos', 'fideicomiso', 'fondo de inversión', 'mercado de capitales', 'calificadora', 'emisión', 'oferta pública'],
+  },
+  {
+    name: 'RNSR — Recopilación de Normas de Seguros y Reaseguros (PDF oficial)',
+    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Seguros/RNSR.pdf',
+    keywords: ['seguro', 'reaseguro', 'aseguradora', 'póliza', 'prima', 'siniestro'],
+  },
+  {
+    name: 'RNCFP — Recopilación de Normas de AFAP (PDF oficial)',
+    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Afap/RNCFP.pdf',
+    keywords: ['afap', 'jubilación', 'pensión', 'ahorro previsional', 'fondo previsional'],
+  },
+  {
+    name: 'Normativa UIAF — Prevención de Lavado de Activos y Financiamiento del Terrorismo',
+    url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Normativa-UIAF.aspx',
+    keywords: ['lavado', 'activos', 'compliance', 'debida diligencia', 'antilavado', 'aml', 'financiamiento terrorismo', 'kyc', 'conozca su cliente', 'pep', 'persona políticamente expuesta', 'plaft', 'uiaf', 'prevención'],
   },
   {
     name: 'Normativa BCU — Página Principal',
@@ -36,73 +58,34 @@ const BCU_SOURCES = [
     keywords: ['normativa', 'regulación', 'circular', 'resolución', 'decreto', 'ley', 'reglamento'],
   },
   {
-    name: 'Recopilación de Normas — Sistema Financiero (índice)',
-    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Paginas/Recopilacion-de-Normas-Instituciones.aspx',
-    keywords: ['banco', 'financiero', 'entidad financiera', 'institución financiera', 'cooperativa', 'casa de cambio', 'índice'],
-  },
-  {
     name: 'Leyes — Instituciones Financieras',
     url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Paginas/Leyes_Instituciones.aspx',
-    keywords: ['ley', 'decreto-ley', 'decreto', 'instituciones', 'bancos', 'legislación'],
-  },
-  {
-    name: 'Prevención de Lavado de Activos y Financiamiento del Terrorismo — UIAF',
-    url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Normativa-UIAF.aspx',
-    keywords: ['lavado', 'activos', 'compliance', 'debida diligencia', 'antilavado', 'aml', 'ftf', 'financiamiento terrorismo', 'kyc', 'conozca su cliente', 'pep', 'persona políticamente expuesta', 'sarlaft', 'plaft', 'uiaf', 'prevención'],
-  },
-  {
-    name: 'RNMV — Recopilación de Normas del Mercado de Valores (PDF oficial)',
-    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Mercado%20de%20Valores/RNMV.pdf',
-    keywords: ['valores', 'bolsa', 'acciones', 'bonos', 'fideicomiso', 'fondo de inversión', 'mercado de capitales', 'calificadora', 'emisión', 'oferta pública', 'lavado', 'debida diligencia', 'plaft'],
-  },
-  {
-    name: 'RNSR — Recopilación de Normas de Seguros y Reaseguros (PDF oficial)',
-    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Seguros/RNSR.pdf',
-    keywords: ['seguro', 'reaseguro', 'aseguradora', 'póliza', 'prima', 'siniestro', 'lavado', 'debida diligencia', 'plaft'],
-  },
-  {
-    name: 'RNCFP — Recopilación de Normas de AFAP (PDF oficial)',
-    url: 'https://www.bcu.gub.uy/Acerca-de-BCU/Normativa/Documents/Reordenamiento%20de%20la%20Recopilaci%C3%B3n/Afap/RNCFP.pdf',
-    keywords: ['afap', 'jubilación', 'pensión', 'ahorro previsional', 'fondo previsional', 'lavado', 'debida diligencia', 'plaft'],
+    keywords: ['ley', 'decreto-ley', 'decreto', 'instituciones', 'legislación'],
   },
   {
     name: 'Política Monetaria y Mercados',
     url: 'https://www.bcu.gub.uy/Politica-Economica-y-Mercados/Paginas/PoliticaMonetaria.aspx',
-    keywords: ['monetaria', 'inflación', 'tasa de interés', 'tipo de cambio', 'dólar', 'peso uruguayo', 'comité de política monetaria', 'copom'],
-  },
-  {
-    name: 'Mercado de Valores — SSF',
-    url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/MercadoDeValores.aspx',
-    keywords: ['valores', 'bolsa', 'acciones', 'bonos', 'fideicomiso', 'fondo de inversión', 'mercado de capitales', 'calificadora', 'emisión', 'oferta pública'],
-  },
-  {
-    name: 'Seguros y Reaseguros — SSF',
-    url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Seguros.aspx',
-    keywords: ['seguro', 'reaseguro', 'aseguradora', 'póliza', 'prima', 'siniestro', 'superintendencia seguros'],
-  },
-  {
-    name: 'Consultas Normativas — SSF',
-    url: 'https://www.bcu.gub.uy/Servicios-Financieros-SSF/Paginas/Consultas-Normativas.aspx',
-    keywords: ['consulta', 'interpretación', 'servicios financieros', 'superintendencia'],
+    keywords: ['monetaria', 'inflación', 'tasa de interés', 'tipo de cambio', 'dólar', 'peso uruguayo', 'copom'],
   },
   {
     name: 'Sistema de Pagos',
     url: 'https://www.bcu.gub.uy/Sistema-de-Pagos/Paginas/default.aspx',
-    keywords: ['pago', 'transferencia', 'clearing', 'liquidación', 'cheque', 'dinero electrónico', 'medio de pago', 'sistema de pagos'],
+    keywords: ['pago', 'transferencia', 'clearing', 'liquidación', 'cheque', 'dinero electrónico', 'medio de pago'],
   },
 ];
 
 const docCache = new Map();
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
+// Genera una query de búsqueda a partir del mensaje del usuario
 function buildSearchQuery(message) {
   const stopWords = new Set([
     'que', 'son', 'cual', 'cuales', 'como', 'cuando', 'donde', 'por', 'para',
     'con', 'del', 'los', 'las', 'una', 'unos', 'unas', 'hay', 'sobre', 'segun',
     'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'tiene', 'tienen', 'debo',
     'puedo', 'puede', 'quiero', 'necesito', 'mas', 'pero', 'porque', 'aunque',
-    'tambien', 'muy', 'bien', 'mal', 'cuales', 'quien', 'quienes', 'podes',
-    'decir', 'dime', 'hablar', 'favor', 'hola', 'gracias',
+    'tambien', 'muy', 'bien', 'mal', 'quien', 'quienes', 'podes', 'decir',
+    'dime', 'hablar', 'favor', 'hola', 'gracias', 'normativa', 'norma',
   ]);
   const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const words = norm(message)
@@ -112,6 +95,7 @@ function buildSearchQuery(message) {
   return [...new Set(words)].slice(0, 6).join(' ');
 }
 
+// Busca en el buscador oficial del BCU y retorna los documentos encontrados
 async function searchBCU(query) {
   if (!query.trim()) return [];
   const searchUrl = `https://www.bcu.gub.uy/busqueda/Paginas/Results.aspx?k=${encodeURIComponent(query)}`;
@@ -141,13 +125,38 @@ async function searchBCU(query) {
         }
       }
     });
-    return results.sort((a, b) => b.score - a.score).slice(0, 5);
+    return results.sort((a, b) => b.score - a.score).slice(0, 6);
   } catch {
     return [];
   }
 }
 
-async function fetchBCUPage(source) {
+// Selecciona fuentes estáticas relevantes para la query (máx 2 + RNRCSF)
+function selectStaticSources(query) {
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const q = norm(query);
+
+  const scored = BCU_SOURCES.map(src => ({
+    ...src,
+    score: src.keywords.reduce((acc, kw) => acc + (q.includes(norm(kw)) ? 1 : 0), 0),
+  })).sort((a, b) => b.score - a.score);
+
+  const selected = new Map();
+
+  // RNRCSF siempre incluido — compilación principal
+  const rnrcsf = BCU_SOURCES.find(s => s.url.includes('RNRCSF'));
+  if (rnrcsf) selected.set(rnrcsf.url, rnrcsf);
+
+  // Hasta 2 fuentes más con mayor puntaje
+  for (const src of scored) {
+    if (selected.size >= 3) break;
+    if (src.score > 0) selected.set(src.url, src);
+  }
+
+  return [...selected.values()];
+}
+
+async function fetchBCUDoc(source) {
   const cached = docCache.get(source.url);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.data;
 
@@ -163,10 +172,8 @@ async function fetchBCUPage(source) {
           httpsAgent: bcuAgent,
           responseType: 'arraybuffer',
         });
-
         const pdf = await pdfParse(Buffer.from(res.data));
         const content = pdf.text.replace(/\s+/g, ' ').trim();
-
         const data = { name: source.name, url: source.url, content, isPDF: true, links: [], fetchedAt: new Date().toISOString() };
         docCache.set(source.url, { data, ts: Date.now() });
         return data;
@@ -178,7 +185,6 @@ async function fetchBCUPage(source) {
         maxRedirects: 5,
         httpsAgent: bcuAgent,
       });
-
       const $ = cheerio.load(res.data);
       $('script, style, nav, header, footer, #s4-ribbonrow, .ms-nav, .ms-siteactionsmenu, #DeltaSiteLogo').remove();
 
@@ -194,57 +200,41 @@ async function fetchBCUPage(source) {
         }
       });
 
-      const rawText = $('body').text().replace(/\s+/g, ' ').trim();
-      const content = rawText.substring(0, 12000);
-
-      const data = {
-        name: source.name,
-        url: source.url,
-        content,
-        links: pdfLinks.slice(0, 25),
-        fetchedAt: new Date().toISOString(),
-      };
+      const content = $('body').text().replace(/\s+/g, ' ').trim().substring(0, 12000);
+      const data = { name: source.name, url: source.url, content, links: pdfLinks.slice(0, 30), fetchedAt: new Date().toISOString() };
       docCache.set(source.url, { data, ts: Date.now() });
       return data;
-    } catch (err) {
+    } catch {
       if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
     }
   }
 
-  // Si el fetch falló, usar caché vencida antes de devolver null
   if (cached) return cached.data;
-
   return null;
 }
 
 function extractRelevantSections(text, query, maxLength = 20000) {
   const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const textNorm = norm(text);
-
-  // Orden importa: de más específico a menos específico
   const terms = [];
 
   const nums = query.match(/\b\d{1,4}\b/g);
   if (nums) {
     nums.forEach(n => {
-      // Patrones más específicos primero — evitan falsos positivos con números de página
       terms.push(`articulo ${n} `);
       terms.push(`articulo ${n}.`);
       terms.push(`articulo ${n}-`);
       terms.push(`art. ${n} `);
-      terms.push(`art. ${n}.`);
       terms.push(`art ${n} `);
     });
   }
 
-  // Palabras clave de la consulta (excluye términos conversacionales)
-  const stopWords = new Set(['hola', 'que', 'del', 'los', 'las', 'una', 'unos', 'unas', 'por', 'con', 'para', 'como', 'dice', 'cual', 'este', 'esta', 'hace', 'sobre', 'podes', 'hablar', 'dime', 'cual', 'cuales', 'segun', 'favor']);
+  const stopWords = new Set(['hola', 'que', 'del', 'los', 'las', 'una', 'por', 'con', 'para', 'como', 'cual', 'este', 'esta', 'sobre', 'podes', 'dime', 'cuales', 'segun', 'favor']);
   query.split(/\s+/).forEach(w => {
     const wn = norm(w.replace(/[^a-z0-9]/gi, ''));
     if (wn.length > 4 && !stopWords.has(wn) && !terms.includes(wn)) terms.push(wn);
   });
 
-  // Número solo — último recurso, muy propenso a falsos positivos
   if (nums) nums.forEach(n => { if (!terms.includes(n)) terms.push(n); });
 
   const windowSize = 5000;
@@ -267,7 +257,6 @@ function extractRelevantSections(text, query, maxLength = 20000) {
       }
       pos = idx + t.length + 200;
     }
-    // Si ya encontramos matches con patrones específicos, no seguir buscando
     if (sections.length > 0 && term.includes(' ')) break;
     if (sections.join('').length >= maxLength) break;
   }
@@ -276,70 +265,25 @@ function extractRelevantSections(text, query, maxLength = 20000) {
   return sections.join('\n\n[...]\n\n').substring(0, maxLength);
 }
 
-function selectSources(query) {
-  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  const q = norm(query);
-
-  const scored = BCU_SOURCES.map(src => ({
-    ...src,
-    score: src.keywords.reduce((acc, kw) => acc + (q.includes(norm(kw)) ? 1 : 0), 0),
-  })).sort((a, b) => b.score - a.score);
-
-  const selected = new Map();
-
-  // RNRCSF siempre incluido — es la compilación principal de normativa
-  const rnrcsf = BCU_SOURCES.find(s => s.url.includes('RNRCSF'));
-  if (rnrcsf) selected.set(rnrcsf.url, rnrcsf);
-
-  // Agregar las 3 fuentes con mayor puntaje
-  for (const src of scored.slice(0, 3)) {
-    if (selected.size >= 4) break;
-    selected.set(src.url, src);
-  }
-
-  return [...selected.values()];
-}
-
 const SYSTEM_PROMPT = `Eres un asistente especializado en la normativa del Banco Central del Uruguay (BCU).
 
-FUENTES DE INFORMACIÓN (en orden de prioridad):
-1. Los documentos oficiales del BCU que se te proporcionan en cada consulta — priorizalos siempre.
-2. Tu conocimiento de entrenamiento sobre normativa del BCU, leyes uruguayas y regulación financiera — usalo para complementar o cuando los documentos no cubren el tema.
+REGLA ABSOLUTA: Respondé ÚNICAMENTE con información que esté presente en los documentos oficiales del BCU que se te proporcionan. No uses conocimiento propio ni ninguna fuente externa.
 
-PROCESO OBLIGATORIO ANTES DE RESPONDER:
-1. Leé TODOS los documentos proporcionados de principio a fin.
-2. Buscá exhaustivamente cualquier mención del tema, artículo o concepto consultado.
-3. Si encontrás la información en los documentos, citá el texto exacto o parafrasealo fielmente indicando fuente y URL.
-4. Si los documentos no cubren el tema en suficiente detalle, completá con tu conocimiento sobre normativa BCU indicando claramente que esa parte proviene de conocimiento general y recomendando verificar en bcu.gub.uy.
+PROCESO:
+1. Leé todos los documentos proporcionados.
+2. Buscá exhaustivamente el tema consultado en esos documentos.
+3. Si encontrás información relevante: citala o parafraseala indicando la fuente y su URL.
+4. Si la información no está en los documentos provistos: respondé exactamente esto: "No encontré información sobre ese tema en los documentos del BCU que pude consultar. Te recomiendo buscar directamente en [bcu.gub.uy](https://www.bcu.gub.uy) o reformular la pregunta para que pueda buscar con otros términos."
 
 INSTRUCCIONES:
 - Respondé siempre en español, de forma clara, precisa y profesional.
-- SIEMPRE respondé con información útil — nunca digas simplemente que no encontraste nada si conocés el tema.
-- Si el usuario pregunta por un artículo específico (ej: "artículo 217"), buscalo en los documentos y si no está, indicá lo que sabés sobre ese artículo desde tu conocimiento.
-- Incluí el número exacto de circulares o resoluciones cuando los conozcas.
-- Solo si genuinamente no tenés ninguna información sobre el tema (ni en documentos ni en conocimiento propio), redirigí al usuario a bcu.gub.uy.
+- Citá artículos, circulares o resoluciones exactamente como aparecen en los documentos.
+- No extrapoles ni inferás más allá del texto de los documentos.
 
 FORMATO:
-- Usá listas cuando sea apropiado.
-- Para referencias normativas: **[Tipo] Nº [número] — [Descripción breve]**
-- Indicá al final las fuentes consultadas con su URL.
-- Cuando uses conocimiento propio para complementar, agregá una nota: *⚠️ Esta información proviene de conocimiento general — verificá en [bcu.gub.uy](https://www.bcu.gub.uy) para datos actualizados.*`;
-
-const SYSTEM_PROMPT_FALLBACK = `Eres un asistente especializado en la normativa del Banco Central del Uruguay (BCU).
-
-En este momento no es posible acceder a los documentos oficiales del BCU en tiempo real. Aun así, DEBÉS responder la consulta utilizando tu conocimiento sobre regulación financiera uruguaya.
-
-INSTRUCCIONES:
-- Respondé siempre en español, de forma clara, precisa y profesional.
-- Usá tu conocimiento sobre la normativa del BCU, leyes uruguayas y regulación financiera para responder.
-- Al inicio de tu respuesta aclará brevemente que no pudiste acceder a los documentos en tiempo real y que la información proviene de tu conocimiento general.
-- Si conocés números de circulares, resoluciones o artículos relevantes, mencionálos.
-- Al final, recomendá verificar la información actualizada en bcu.gub.uy.
-- Si genuinamente no tenés información sobre el tema, decilo claramente y dirigí al usuario a bcu.gub.uy.
-
-FORMATO:
-- Usá listas cuando sea apropiado.
-- Para referencias normativas: **[Tipo] Nº [número] — [Descripción breve]**`;
+- Usá listas cuando corresponda.
+- Referencias normativas: **[Tipo] Nº [número] — [descripción]**
+- Al final de cada respuesta listá las fuentes consultadas con su URL.`;
 
 app.post('/api/chat', async (req, res) => {
   const { message, history = [] } = req.body;
@@ -352,117 +296,100 @@ app.post('/api/chat', async (req, res) => {
   res.flushHeaders();
 
   try {
-    const sources = selectSources(message);
     const searchQuery = buildSearchQuery(message);
+    const staticSources = selectStaticSources(message);
 
-    // Buscar en BCU y fetchear fuentes predefinidas en paralelo
-    const [fetchedDocs, searchResults] = await Promise.all([
-      Promise.all(sources.map(fetchBCUPage)),
+    // 1. Búsqueda en BCU + fetch de fuentes estáticas en paralelo
+    const [searchResults, staticDocs] = await Promise.all([
       searchBCU(searchQuery),
+      Promise.all(staticSources.map(fetchBCUDoc)),
     ]);
 
-    // Agregar resultados de búsqueda que no fueron ya fetcheados
-    const fetchedUrls = new Set(sources.map(s => s.url));
-    const extraSources = searchResults.filter(r => !fetchedUrls.has(r.url));
-    const searchDocs = await Promise.all(extraSources.map(fetchBCUPage));
+    // 2. Los resultados de búsqueda van primero (más relevantes); luego fuentes estáticas sin repetir
+    const seenUrls = new Set(searchResults.map(r => r.url));
+    const extraStatic = staticSources.filter(s => !seenUrls.has(s.url));
+    const allSources = [...searchResults, ...extraStatic];
 
-    const validDocs = [...fetchedDocs, ...searchDocs].filter(Boolean);
+    // 3. Fetchear resultados de búsqueda (limitado a los 4 más relevantes para no saturar)
+    const searchDocs = await Promise.all(
+      searchResults.slice(0, 4).map(fetchBCUDoc)
+    );
 
-    if (validDocs.length === 0) {
-      const fallbackMessages = [
-        { role: 'system', content: SYSTEM_PROMPT_FALLBACK },
-        ...history
-          .filter(m => m.role && m.content)
-          .map(m => ({ role: m.role, content: m.content })),
-        { role: 'user', content: message },
-      ];
-
-      const fallbackStream = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: fallbackMessages,
-        stream: true,
-      });
-
-      for await (const chunk of fallbackStream) {
-        const text = chunk.choices[0]?.delta?.content || '';
-        if (text) {
-          res.write(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`);
-        }
+    // 4. Combinar todos los documentos obtenidos, sin duplicados
+    const validDocs = [];
+    const addedUrls = new Set();
+    for (const doc of [...searchDocs, ...staticDocs]) {
+      if (doc && !addedUrls.has(doc.url)) {
+        addedUrls.add(doc.url);
+        validDocs.push(doc);
       }
+    }
 
+    // 5. Si no se pudo acceder a ningún documento, responder honestamente
+    if (validDocs.length === 0) {
+      res.write(`data: ${JSON.stringify({ type: 'text', content: 'No pude acceder al sitio oficial del BCU en este momento. Por favor intentá de nuevo en unos instantes o consultá directamente en [bcu.gub.uy](https://www.bcu.gub.uy).' })}\n\n`);
       res.write(`data: ${JSON.stringify({ type: 'sources', sources: [] })}\n\n`);
       res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
       return;
     }
 
-    // Buscar PDFs relevantes en los links encontrados en las páginas HTML
+    // 6. Buscar PDFs adicionales en los links de páginas HTML ya fetcheadas
     const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     const queryNorm = norm(message);
-    const alreadyFetched = new Set(validDocs.map(d => d.url));
     const pdfCandidates = [];
 
     for (const doc of validDocs) {
       if (!doc.links) continue;
       for (const link of doc.links) {
-        if (!link.url.toLowerCase().includes('.pdf')) continue;
-        if (alreadyFetched.has(link.url)) continue;
-
+        if (!link.url.toLowerCase().includes('.pdf') || addedUrls.has(link.url)) continue;
         const linkNorm = norm(link.text);
         let score = 0;
         const nums = message.match(/\b\d{1,4}\b/g);
         if (nums) nums.forEach(n => { if (linkNorm.includes(n)) score += 3; });
-        queryNorm.split(/\s+/).forEach(w => {
-          if (w.length > 3 && linkNorm.includes(w)) score += 1;
-        });
-
+        queryNorm.split(/\s+/).forEach(w => { if (w.length > 3 && linkNorm.includes(w)) score += 1; });
         if (score > 0) {
           pdfCandidates.push({ name: link.text, url: link.url, score });
-          alreadyFetched.add(link.url);
+          addedUrls.add(link.url);
         }
       }
     }
 
-    // Descargar los 3 PDFs más relevantes encontrados dinámicamente
     if (pdfCandidates.length > 0) {
       pdfCandidates.sort((a, b) => b.score - a.score);
-      const topPDFs = pdfCandidates.slice(0, 3);
-      const pdfDocs = await Promise.all(topPDFs.map(fetchBCUPage));
-      pdfDocs.filter(Boolean).forEach(d => validDocs.push(d));
+      const extraPDFs = await Promise.all(pdfCandidates.slice(0, 2).map(fetchBCUDoc));
+      extraPDFs.filter(Boolean).forEach(d => validDocs.push(d));
     }
 
+    // 7. Construir contexto para el modelo
     const docsContext = validDocs.map(doc => {
       const content = doc.isPDF
         ? extractRelevantSections(doc.content, message)
         : doc.content;
       let section = `### ${doc.name}\n**URL:** ${doc.url}\n\n${content}`;
       if (doc.links && doc.links.length > 0) {
-        section += `\n\n**Documentos y enlaces encontrados:**\n${doc.links.map(l => `- ${l.text}: ${l.url}`).join('\n')}`;
+        section += `\n\n**Enlaces encontrados en este documento:**\n${doc.links.map(l => `- ${l.text}: ${l.url}`).join('\n')}`;
       }
       return section;
     }).join('\n\n---\n\n');
 
-    const groqMessages = [
+    const messages = [
       { role: 'system', content: SYSTEM_PROMPT },
-      ...history
-        .filter(m => m.role && m.content)
-        .map(m => ({ role: m.role, content: m.content })),
+      ...history.filter(m => m.role && m.content).map(m => ({ role: m.role, content: m.content })),
       {
         role: 'user',
-        content: `Documentos oficiales del BCU para responder esta consulta (usá ÚNICAMENTE esta información):\n\n${docsContext}\n\nConsulta: ${message}`,
+        content: `A continuación están los documentos oficiales obtenidos de bcu.gub.uy. Respondé la consulta basándote EXCLUSIVAMENTE en esta información:\n\n${docsContext}\n\nConsulta: ${message}`,
       },
     ];
 
     const stream = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: groqMessages,
+      messages,
       stream: true,
     });
 
     for await (const chunk of stream) {
       const text = chunk.choices[0]?.delta?.content || '';
-      if (text) {
-        res.write(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`);
-      }
+      if (text) res.write(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`);
     }
 
     res.write(`data: ${JSON.stringify({ type: 'sources', sources: validDocs.map(d => ({ name: d.name, url: d.url })) })}\n\n`);
@@ -483,14 +410,8 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🏦  BCU Normativa Assistant → http://localhost:${PORT}\n`);
 
-  // Pre-cargar documentos principales en background al arrancar
-  const toPrewarm = BCU_SOURCES.filter(s =>
-    s.url.includes('RNRCSF') ||
-    s.url.includes('Normativa.aspx') ||
-    s.url.includes('PrevLavado') ||
-    s.url.includes('MercadoDeValores') ||
-    s.url.includes('Seguros')
-  );
-  console.log(`[Cache] Pre-cargando ${toPrewarm.length} documentos en background...`);
-  toPrewarm.forEach(s => fetchBCUPage(s).catch(() => {}));
+  // Pre-calentar los PDFs principales en background
+  const toPrewarm = BCU_SOURCES.filter(s => s.url.includes('.pdf'));
+  console.log(`[Cache] Pre-cargando ${toPrewarm.length} PDFs en background...`);
+  toPrewarm.forEach(s => fetchBCUDoc(s).catch(() => {}));
 });
